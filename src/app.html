@@ -315,7 +315,8 @@ function initDoc(w,h,blank){
 
 /* ---------- 화면 ---------- */
 const view=$('#view'), stage=$('#stage');
-const vctx=view.getContext('2d',{alpha:false,desynchronized:true});
+// desynchronized(저지연) 모드는 안드로이드에서 화면 전체를 다시 그릴 때 깜빡임이 생겨 끔
+const vctx=view.getContext('2d',{alpha:false});
 const V={s:1,r:0,tx:0,ty:0,flip:false};
 let M=new DOMMatrix(),Mi=new DOMMatrix(),SW=100,SH=100,DPR=1,rect={left:0,top:0};
 function updM(){M=new DOMMatrix().translate(V.tx,V.ty).rotate(V.r).scale(V.s*(V.flip?-1:1),V.s);Mi=M.inverse();}
@@ -326,7 +327,7 @@ function resize(){
   const r=stage.getBoundingClientRect();const first=SW===100;
   const keep=first?null:toDoc(SW/2,SH/2);
   SW=Math.max(1,r.width);SH=Math.max(1,r.height);DPR=Math.min(window.devicePixelRatio||1,2.5);
-  view.width=Math.round(SW*DPR);view.height=Math.round(SH*DPR);rect=r;
+  const nw=Math.round(SW*DPR),nh=Math.round(SH*DPR);if(view.width!==nw)view.width=nw;if(view.height!==nh)view.height=nh;rect=r;
   if(first||!keep)fitView();else{centerOn(keep,{x:SW/2,y:SH/2});dirty();}
 }
 new ResizeObserver(resize).observe(stage);
@@ -355,7 +356,8 @@ function render(){
   vctx.fillStyle=stageCol;vctx.fillRect(0,0,view.width,view.height);
   const T=new DOMMatrix().scale(DPR,DPR).multiply(M);
   vctx.setTransform(T);
-  vctx.save();vctx.shadowColor='rgba(0,0,0,.22)';vctx.shadowBlur=18*DPR;vctx.shadowOffsetY=4*DPR;
+  // 그림자 흐림(shadowBlur)은 태블릿에서 매 프레임 무거워 겹친 사각형으로 대신함
+  vctx.save();const u=1/V.s;for(let i=1;i<=3;i++){vctx.fillStyle='rgba(0,0,0,'+(0.07/i)+')';vctx.fillRect(-i*2*u,(-i*2+3)*u,DOC.w+i*4*u,DOC.h+i*4*u);}
   if(!checkerPat)checkerPat=vctx.createPattern(checker,'repeat');
   vctx.fillStyle=checkerPat;vctx.fillRect(0,0,DOC.w,DOC.h);vctx.restore();
   vctx.imageSmoothingEnabled=V.s<1.8;vctx.imageSmoothingQuality='medium';
