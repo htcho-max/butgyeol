@@ -44,6 +44,7 @@ button,select,input{font:inherit;color:inherit}
 .txtbtn.primary{background:var(--accent);color:var(--accent-ink)}
 .txtbtn.danger{background:var(--danger);color:#fff}
 .txtbtn.line{border:1px solid var(--line)}
+.txtbtn:disabled{opacity:.45;cursor:default}
 #saveState{font-size:12px;color:var(--muted);white-space:nowrap;padding:0 6px;font-variant-numeric:tabular-nums}
 #main{flex:1;min-height:0;display:flex;gap:6px;position:relative}
 #rail{flex:none;width:56px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;background:var(--raised);border:1px solid var(--line);border-radius:12px;overflow-y:auto;scrollbar-width:none}
@@ -127,7 +128,23 @@ input[type=range]{accent-color:var(--accent);width:100%}
 .mitem b{font-weight:500;font-size:14px}
 .mitem span{font-size:12px;color:var(--muted)}
 .scrim{position:fixed;inset:0;background:rgba(10,12,16,.45);z-index:30;display:grid;place-items:center;padding:16px}
-#newModal,#askModal,#expModal{z-index:40}
+#newModal,#askModal,#expModal,#sizeModal{z-index:40}
+.sizerow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.sizerow label{display:flex;align-items:center;gap:6px}
+.sizerow input{width:84px;height:38px;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:0 10px;font-variant-numeric:tabular-nums;-webkit-user-select:text;user-select:text}
+.seg2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.seg2 button{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:10px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px;font-weight:500;font-size:13px}
+.seg2 button span{font-size:11px;color:var(--muted);font-weight:400}
+.seg2 button.on{border-color:var(--accent);background:var(--accent-soft)}
+#szAnchor{display:grid;grid-template-columns:repeat(3,34px);gap:4px}
+#szAnchor button{width:34px;height:34px;border:1px solid var(--line);border-radius:8px;background:var(--panel);cursor:pointer;padding:0;display:grid;place-items:center}
+#szAnchor button.on{background:var(--accent);border-color:var(--accent)}
+#szAnchor button.on::after{content:"";width:10px;height:10px;border-radius:3px;background:var(--accent-ink)}
+.chips{display:flex;gap:4px;flex-wrap:wrap}
+.chips button{height:30px;padding:0 10px;border:1px solid var(--line);border-radius:999px;background:var(--panel);cursor:pointer;font-size:12px;font-variant-numeric:tabular-nums}
+.chips button:hover{background:var(--accent-soft)}
+.szinfo{font-size:12px!important;font-variant-numeric:tabular-nums}
+.szinfo.err{color:var(--danger)!important}
 .modal{background:var(--raised);border-radius:14px;padding:18px;width:min(380px,100%);display:flex;flex-direction:column;gap:14px;max-height:90%;overflow:auto;box-sizing:border-box}
 .modal h3{margin:0;font-size:16px}
 .modal p{margin:0;font-size:13px;color:var(--muted);line-height:1.55}
@@ -192,6 +209,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
     <div class="grp">
       <button class="ib" id="bSet" title="설정" data-i="sliders"></button>
       <button class="ib" id="bImport" title="이미지를 새 레이어로 불러오기" data-i="image"></button>
+      <button class="ib" id="bSize" title="캔버스 크기" data-i="resize"></button>
       <button class="ib" id="bNew" title="새 작품" data-i="newfile"></button>
       <button class="ib" id="bGallery" title="작품 보관함" data-i="grid"></button>
     </div>
@@ -223,7 +241,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
       <div class="fbar" id="selBar" hidden>
         <span id="selModeWrap" style="display:flex;gap:2px"><button class="fb" data-m="rect">사각형</button><button class="fb" data-m="lasso">올가미</button><span class="vsep"></span></span>
         <button class="fb" id="sAll">전체 선택</button>
-        <span id="selOps" style="display:flex;gap:2px"><button class="fb" id="sInv">반전</button><button class="fb" id="sCopy">새 레이어로 복사</button><button class="fb" id="sDel">지우기</button><button class="fb" id="sNone">선택 해제</button></span>
+        <span id="selOps" style="display:flex;gap:2px"><button class="fb" id="sInv">반전</button><button class="fb" id="sCopy">새 레이어로 복사</button><button class="fb" id="sDel">지우기</button><button class="fb" id="sCrop">이 영역으로 자르기</button><button class="fb" id="sNone">선택 해제</button></span>
         <span class="vsep"></span>
         <button class="fb primary" id="sTf">변형</button>
       </div>
@@ -308,7 +326,23 @@ input[type=range]{accent-color:var(--accent);width:100%}
     <h3 id="nmT">새 작품</h3>
     <p>지금 그림은 작품 보관함에 그대로 남아 있어요.</p>
     <div class="presets" id="presets"></div>
+    <div class="sizerow"><label>가로 <input type="number" id="nmW" min="16" max="5000" inputmode="numeric"></label><span>×</span><label>세로 <input type="number" id="nmH" min="16" max="5000" inputmode="numeric"></label><span>px</span></div>
+    <p class="szinfo" id="nmInfo"></p>
     <div class="mbtns"><button class="txtbtn" id="nmCancel">취소</button><button class="txtbtn primary" id="nmOk">만들기</button></div>
+  </div>
+</div>
+
+<div class="scrim" id="sizeModal" hidden>
+  <div class="modal" role="dialog" aria-labelledby="szT">
+    <h3 id="szT">캔버스 크기</h3>
+    <div class="seg2" id="szMode"><button data-m="canvas">캔버스 크기<span>자르거나 여백 늘리기</span></button><button data-m="image">이미지 크기<span>그림째 늘리고 줄이기</span></button></div>
+    <div class="sizerow"><label>가로 <input type="number" id="szW" min="16" max="5000" inputmode="numeric"></label><span>×</span><label>세로 <input type="number" id="szH" min="16" max="5000" inputmode="numeric"></label><span>px</span></div>
+    <div class="chips" id="szChips"><button data-k="0.5">50%</button><button data-k="0.75">75%</button><button data-k="1.25">125%</button><button data-k="1.5">150%</button><button data-k="2">200%</button></div>
+    <label class="chk"><input type="checkbox" id="szLock"> 가로세로 비율 유지</label>
+    <div class="field" id="szAnchorWrap"><span>그림이 놓일 자리 <span class="hint">늘리면 반대쪽에 여백이 생기고, 줄이면 반대쪽이 잘려요</span></span><div id="szAnchor"></div></div>
+    <label class="chk" id="szFillWrap"><input type="checkbox" id="szFill" checked> 늘어난 부분은 맨 아래 레이어를 흰색으로 채우기</label>
+    <p class="szinfo" id="szInfo"></p>
+    <div class="mbtns"><button class="txtbtn" id="szCancel">취소</button><button class="txtbtn primary" id="szOk">바꾸기</button></div>
   </div>
 </div>
 
@@ -344,7 +378,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 <script>
 (()=>{
 "use strict";
-const VERSION='v1.3';
+const VERSION='v1.4';
 const $=s=>document.querySelector(s);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const IN_ARTIFACT=!!window.claude;
@@ -384,7 +418,8 @@ const IC={
  merge:"M7 4v5a5 5 0 0 0 10 0V4M12 14v6M9 17l3 3 3-3",
  clear:"M5 5h14v14H5zM9 9l6 6M15 9l-6 6",
  trash:"M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13",
- more:"M5 12h.01M12 12h.01M19 12h.01"
+ more:"M5 12h.01M12 12h.01M19 12h.01",
+ resize:"M4 9V4h5M4 4l6 6M20 15v5h-5M20 20l-6-6M14 4h6v6M10 20H4v-6"
 };
 const svg=n=>`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[n]}"/></svg>`;
 document.querySelectorAll('[data-i]').forEach(el=>{el.innerHTML=svg(el.dataset.i)+el.innerHTML;});
@@ -590,6 +625,7 @@ function restore(s){layers=s.list.map(o=>{Object.assign(o.l,{opacity:o.opacity,b
 function apply(e,undo){
   if(e.t==='px'){const c=e.L.ctx;c.clearRect(e.x,e.y,e.w,e.h);c.drawImage(undo?e.before:e.after,e.x,e.y);thumb(e.L);}
   else if(e.t==='st')restore(undo?e.before:e.after);
+  else if(e.t==='rs'){const s=undo?e.before:e.after;DOC={w:s.w,h:s.h};s.cs.forEach(({L,c})=>{L.canvas=c;L.ctx=c.getContext('2d');});allocBuffers();SEL=null;SELD=null;updBars();fitView();}
   else if(e.t==='grp'){const it=undo?[...e.items].reverse():e.items;it.forEach(x=>apply(x,undo));}
 }
 function undo(){if(S)return;if(TF){cancelTF();toast('변형을 취소했어요');return;}const e=hist.pop();if(!e){toast('더 되돌릴 게 없어요');return;}apply(e,true);redoS.push(e);updHist();renderLayers();dirty();changed();toast('실행 취소');}
@@ -629,6 +665,8 @@ $('#sDel').onclick=()=>{if(!SEL)return;const L=layers[active];copyInto(beforeC,L
   const[x,y,w,h]=selBBox();if(w&&h)pushPx(L,x,y,w,h,beforeC);thumb(L);dirty();changed();toast('선택한 부분을 지웠어요');};
 $('#sCopy').onclick=()=>{if(!SEL)return;const src=layers[active];structOp(()=>{const L=newLayer(src.name+' 조각');L.ctx.save();selClip(L.ctx);L.ctx.drawImage(src.canvas,0,0);L.ctx.restore();layers.splice(active+1,0,L);active++;});toast('새 레이어로 복사했어요');};
 $('#sTf').onclick=()=>startTransform();
+$('#sCrop').onclick=()=>{if(!SEL)return;if(SEL.invert){toast('반전된 선택으로는 자를 수 없어요');return;}const[x,y,w,h]=selBBox();if(w<16||h<16){toast('16 픽셀보다 작게는 자를 수 없어요');return;}
+  resizeDoc(w,h,{mode:'canvas',ox:-x,oy:-y,fill:false});toast(`${w}×${h} 로 잘랐어요 · 두 손가락 탭으로 되돌리기`);};
 
 /* ---------- 변형 ---------- */
 let TF=null,tfDrag=null;
@@ -980,12 +1018,51 @@ function ask(title,text,{yes='확인',danger=false,input=null}={}){
 /* 새 작품 */
 const PRESETS=[[2400,1500,'태블릿 가로','16:10'],[1500,2400,'태블릿 세로','10:16'],[2048,2048,'정사각형','1:1'],[1920,1080,'와이드 화면','16:9'],[1080,1350,'SNS 세로','4:5'],[3000,2000,'크게 그리기','3:2']];
 let preSel=0;
+const MAXS=5000,MAXA=16e6;
+function sizeErr(w,h){if(!(w>=16&&h>=16))return'가로·세로를 16 픽셀 이상으로 정해 주세요';if(w>MAXS||h>MAXS)return`한 변은 ${MAXS} 픽셀까지 정할 수 있어요`;if(w*h>MAXA)return'너무 커요. 태블릿 메모리를 생각해서 가로나 세로를 줄여 주세요 (넓이 1600만 픽셀까지)';return null;}
+function memText(w,h,n){const mb=Math.round(w*h*4*(n+3)/1048576);return`레이어 ${n}장 기준 메모리 약 ${mb}MB`+(mb>700?' · 태블릿에서 느려질 수 있어요':'');}
 function drawPresets(){$('#presets').innerHTML=PRESETS.map((p,i)=>`<button data-p="${i}" class="${i===preSel?'sel':''}"><b>${p[2]}</b><span>${p[0]} × ${p[1]} · ${p[3]}</span></button>`).join('');
-  $('#presets').querySelectorAll('button').forEach(b=>b.onclick=()=>{preSel=+b.dataset.p;drawPresets();});}
-function openNew(){drawPresets();$('#newModal').hidden=false;}
+  $('#presets').querySelectorAll('button').forEach(b=>b.onclick=()=>{preSel=+b.dataset.p;$('#nmW').value=PRESETS[preSel][0];$('#nmH').value=PRESETS[preSel][1];drawPresets();nmCheck();});}
+function nmCheck(){const w=Math.round(+$('#nmW').value),h=Math.round(+$('#nmH').value);const er=sizeErr(w,h);const el=$('#nmInfo');el.textContent=er||memText(w,h,2);el.classList.toggle('err',!!er);$('#nmOk').disabled=!!er;return er?null:[w,h];}
+['#nmW','#nmH'].forEach(id=>$(id).addEventListener('input',()=>{const w=+$('#nmW').value,h=+$('#nmH').value;preSel=PRESETS.findIndex(p=>p[0]===w&&p[1]===h);drawPresets();nmCheck();}));
+function openNew(){if(preSel<0)preSel=0;$('#nmW').value=PRESETS[preSel][0];$('#nmH').value=PRESETS[preSel][1];drawPresets();nmCheck();$('#newModal').hidden=false;}
 $('#bNew').onclick=openNew;
 $('#nmCancel').onclick=()=>{$('#newModal').hidden=true;};
-$('#nmOk').onclick=async()=>{const p=PRESETS[preSel];$('#newModal').hidden=true;$('#galModal').hidden=true;await newWork(p[0],p[1]);toast('새 작품을 만들었어요');};
+$('#nmOk').onclick=async()=>{const s=nmCheck();if(!s)return;$('#newModal').hidden=true;$('#galModal').hidden=true;await newWork(s[0],s[1]);toast(`${s[0]}×${s[1]} 새 작품을 만들었어요`);};
+
+/* 캔버스 크기 바꾸기 */
+function resizeDoc(nw,nh,{mode='canvas',ox=0,oy=0,fill=false}={}){
+  settleTF();SEL=null;SELD=null;
+  const before={w:DOC.w,h:DOC.h,cs:layers.map(L=>({L,c:L.canvas}))};const after={w:nw,h:nh,cs:[]};
+  layers.forEach((L,i)=>{const c=mk(nw,nh),x=c.getContext('2d');
+    if(mode==='image'){x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';x.drawImage(L.canvas,0,0,nw,nh);}
+    else{if(fill&&i===0){x.fillStyle='#ffffff';x.fillRect(0,0,nw,nh);x.clearRect(ox,oy,DOC.w,DOC.h);}x.drawImage(L.canvas,ox,oy);}
+    after.cs.push({L,c});});
+  // 실행 취소는 순서대로만 되돌리므로 크기 바꾸기 앞뒤 기록이 각자 맞는 크기에서 적용됨
+  const e={t:'rs',before,after};apply(e,false);push(e);renderLayers();dirty();changed();
+}
+let szMode='canvas',szA=[.5,.5];
+function szRatio(){return DOC.w/DOC.h;}
+function szSync(){
+  $('#szMode').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.m===szMode));
+  $('#szAnchorWrap').hidden=szMode!=='canvas';$('#szFillWrap').hidden=szMode!=='canvas';
+  $('#szAnchor').querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.x===szA[0]&&+b.dataset.y===szA[1]));
+  const w=Math.round(+$('#szW').value),h=Math.round(+$('#szH').value);const er=sizeErr(w,h);const el=$('#szInfo');
+  el.textContent=er||(`${DOC.w}×${DOC.h} → ${w}×${h} · `+memText(w,h,layers.length));el.classList.toggle('err',!!er);
+  $('#szOk').disabled=!!er||(w===DOC.w&&h===DOC.h);
+}
+$('#szAnchor').innerHTML=[0,.5,1].flatMap(y=>[0,.5,1].map(x=>`<button data-x="${x}" data-y="${y}" aria-label="기준 위치"></button>`)).join('');
+$('#szAnchor').querySelectorAll('button').forEach(b=>b.onclick=()=>{szA=[+b.dataset.x,+b.dataset.y];szSync();});
+$('#szMode').querySelectorAll('button').forEach(b=>b.onclick=()=>{szMode=b.dataset.m;$('#szLock').checked=szMode==='image';szSync();});
+$('#szW').addEventListener('input',()=>{if($('#szLock').checked)$('#szH').value=Math.max(1,Math.round(+$('#szW').value/szRatio()));szSync();});
+$('#szH').addEventListener('input',()=>{if($('#szLock').checked)$('#szW').value=Math.max(1,Math.round(+$('#szH').value*szRatio()));szSync();});
+$('#szLock').onchange=()=>{if($('#szLock').checked)$('#szH').value=Math.max(1,Math.round(+$('#szW').value/szRatio()));szSync();};
+$('#szChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{const k=+b.dataset.k;$('#szW').value=Math.round(DOC.w*k);$('#szH').value=Math.round(DOC.h*k);szSync();});
+$('#bSize').onclick=()=>{settleTF();closePops();$('#szW').value=DOC.w;$('#szH').value=DOC.h;$('#szLock').checked=szMode==='image';szSync();$('#sizeModal').hidden=false;};
+$('#szCancel').onclick=()=>{$('#sizeModal').hidden=true;};
+$('#szOk').onclick=()=>{const w=Math.round(+$('#szW').value),h=Math.round(+$('#szH').value);if(sizeErr(w,h))return;$('#sizeModal').hidden=true;
+  if(szMode==='image')resizeDoc(w,h,{mode:'image'});else resizeDoc(w,h,{mode:'canvas',ox:Math.round((w-DOC.w)*szA[0]),oy:Math.round((h-DOC.h)*szA[1]),fill:$('#szFill').checked});
+  toast(`${w}×${h} 로 바꿨어요 · 두 손가락 탭으로 되돌리기`);};
 
 /* 이미지 불러오기 (새 레이어) */
 $('#bImport').onclick=()=>$('#file').click();
