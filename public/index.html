@@ -94,8 +94,8 @@ button,select,input{font:inherit;color:inherit}
 .lr .ib svg{width:18px;height:18px}
 .lr.hid b{color:var(--muted)}
 .lr input{width:100%;height:26px;border:1px solid var(--accent);border-radius:6px;background:var(--panel);padding:0 6px;-webkit-user-select:text;user-select:text}
-.ltools{display:flex;flex-wrap:wrap;gap:2px}
-.ltools .ib{width:34px;height:34px}
+.ltools{display:flex;flex-wrap:wrap;gap:0;justify-content:space-between}
+.ltools .ib{width:30px;height:34px}
 .ltools .ib svg{width:19px;height:19px}
 .props{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center;font-size:12px;color:var(--muted)}
 .props select{height:30px;border-radius:8px;border:1px solid var(--line);background:var(--panel);padding:0 6px}
@@ -284,6 +284,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
           <button class="ib" id="lUp" title="위로" data-i="up"></button>
           <button class="ib" id="lDown" title="아래로" data-i="down"></button>
           <button class="ib" id="lMerge" title="아래 레이어와 합치기" data-i="merge"></button>
+          <button class="ib" id="lMergeVis" title="보이는 레이어 모두 합치기" data-i="mergeall"></button>
           <button class="ib" id="lClear" title="레이어 비우기" data-i="clear"></button>
           <button class="ib" id="lDel" title="레이어 삭제" data-i="trash"></button>
         </div>
@@ -378,7 +379,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 <script>
 (()=>{
 "use strict";
-const VERSION='v1.4';
+const VERSION='v1.5';
 const $=s=>document.querySelector(s);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const IN_ARTIFACT=!!window.claude;
@@ -419,6 +420,7 @@ const IC={
  clear:"M5 5h14v14H5zM9 9l6 6M15 9l-6 6",
  trash:"M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13",
  more:"M5 12h.01M12 12h.01M19 12h.01",
+ mergeall:"M12 3l8 4.5-8 4.5-8-4.5zM4 11.5l8 4.5 8-4.5M12 18v3.5M9.5 19.5l2.5 2.5 2.5-2.5",
  resize:"M4 9V4h5M4 4l6 6M20 15v5h-5M20 20l-6-6M14 4h6v6M10 20H4v-6"
 };
 const svg=n=>`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[n]}"/></svg>`;
@@ -960,7 +962,7 @@ function renderLayers(){
   }
   const A=layers[active];$('#lOp').value=Math.round(A.opacity*100);$('#lBlend').value=A.blend;$('#lLock').checked=A.lockAlpha;
   $('#layerCount').textContent=layers.length+'개';
-  $('#lDel').disabled=layers.length<=1;$('#lMerge').disabled=active===0;$('#lDown').disabled=active===0;$('#lUp').disabled=active===layers.length-1;
+  $('#lDel').disabled=layers.length<=1;$('#lMerge').disabled=active===0;$('#lMergeVis').disabled=layers.filter(L=>L.visible).length<2;$('#lDown').disabled=active===0;$('#lUp').disabled=active===layers.length-1;
 }
 function rename(L,nm){const inp=document.createElement('input');inp.value=L.name;inp.id='renameInput';nm.replaceChildren(inp);inp.focus();inp.select();
   const done=()=>{const v=inp.value.trim();if(v&&v!==L.name)structOp(()=>{L.name=v;});else renderLayers();};
@@ -978,10 +980,19 @@ $('#lDown').onclick=()=>{if(active>0)structOp(()=>{const L=layers.splice(active,
 $('#lDel').onclick=()=>{if(layers.length>1)structOp(()=>{layers.splice(active,1);active=Math.max(0,active-1);});};
 $('#lClear').onclick=()=>{settleTF();const L=layers[active];copyInto(beforeC,L.canvas);L.ctx.clearRect(0,0,DOC.w,DOC.h);pushPx(L,0,0,DOC.w,DOC.h,beforeC);thumb(L);dirty();changed();toast('레이어를 비웠어요 · 두 손가락 탭으로 되돌리기');};
 $('#lMerge').onclick=()=>{settleTF();if(active===0)return;const top=layers[active],low=layers[active-1];
+  if(!top.visible){toast('숨긴 레이어는 합칠 수 없어요. 눈 아이콘을 켜고 합치세요');return;}
+  if(!low.visible){toast('아래 레이어가 숨겨져 있어요. 눈 아이콘을 켜고 합치세요');return;}
   const b=snap();copyInto(beforeC,low.canvas);
   if(top.visible){low.ctx.globalAlpha=top.opacity;low.ctx.globalCompositeOperation=top.blend;low.ctx.drawImage(top.canvas,0,0);low.ctx.globalAlpha=1;low.ctx.globalCompositeOperation='source-over';}
   const px=pxEntry(low,0,0,DOC.w,DOC.h,beforeC);layers.splice(active,1);active--;
   push({t:'grp',items:[px,{t:'st',before:b,after:snap()}]});renderLayers();dirty();changed();};
+// 보이는 레이어 모두 합치기: 눈이 켜진 레이어를 보이는 그대로(불투명도·합성 모드 반영) 한 장으로. 숨긴 레이어는 그대로 남김
+$('#lMergeVis').onclick=()=>{settleTF();const vis=layers.filter(L=>L.visible);
+  if(vis.length<2){toast('보이는 레이어가 2장 이상이어야 합칠 수 있어요');return;}
+  structOp(()=>{const M2=newLayer('합친 레이어');const x=M2.ctx;
+    vis.forEach(L=>{x.globalAlpha=L.opacity;x.globalCompositeOperation=L.blend;x.drawImage(L.canvas,0,0);});x.globalAlpha=1;x.globalCompositeOperation='source-over';
+    const at=layers.indexOf(vis[0]);layers=layers.filter(L=>!L.visible);layers.splice(at,0,M2);active=at;});
+  toast(`보이는 레이어 ${vis.length}장을 합쳤어요 · 두 손가락 탭으로 되돌리기`);};
 
 /* ---------- 상단 버튼 ---------- */
 $('#bUndo').onclick=undo;$('#bRedo').onclick=redo;$('#bFit').onclick=fitView;
