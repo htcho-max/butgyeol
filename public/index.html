@@ -83,7 +83,7 @@ button,select,input{font:inherit;color:inherit}
 #recent{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
 #recent button{aspect-ratio:1;border-radius:6px;border:1px solid var(--line);cursor:pointer;padding:0}
 #layersCard{flex:1}
-#layerList{flex:1;min-height:80px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;margin:0 -4px;padding:0 4px}
+#layerList{flex:1;min-height:150px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;margin:0 -4px;padding:0 4px}
 .lr{display:flex;align-items:center;gap:8px;padding:4px;border-radius:8px;border:1px solid transparent;cursor:pointer}
 .lr.act{background:var(--accent-soft);border-color:var(--accent)}
 .lr canvas{width:52px;height:34px;border-radius:4px;border:1px solid var(--line);flex:none;background:repeating-conic-gradient(#c9ccd3 0 25%,#f2f3f5 0 50%) 0 0/10px 10px}
@@ -93,6 +93,17 @@ button,select,input{font:inherit;color:inherit}
 .lr .ib{width:32px;height:32px}
 .lr .ib svg{width:18px;height:18px}
 .lr.hid b{color:var(--muted)}
+.lr .ind{flex:none}
+.lr .fold{width:52px;height:34px;flex:none;display:grid;place-items:center;color:var(--muted);border:1px dashed var(--line);border-radius:4px;background:var(--panel);cursor:pointer;padding:0}
+.lr .fold svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linejoin:round}
+.lr canvas.mk{width:30px!important}
+.lr canvas.edit{outline:2px solid var(--accent);outline-offset:1px}
+.lr .cl{color:var(--accent);font-weight:600;flex:none;width:10px;margin-right:-4px}
+.lr .tags{font-size:10px;color:var(--accent)}
+.lopts{display:flex;flex-wrap:wrap;gap:4px}
+.lopts button{height:28px;padding:0 9px;border:1px solid var(--line);border-radius:999px;background:var(--panel);font-size:12px;cursor:pointer;white-space:nowrap}
+.lopts button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.lopts button:disabled{opacity:.4;cursor:default}
 .grip{width:18px;height:36px;display:grid;place-items:center;cursor:grab;touch-action:none;color:var(--muted);flex:none;margin-right:-4px}
 .grip svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round}
 .lr.drag{position:relative;z-index:2;background:var(--raised);box-shadow:0 6px 16px rgba(0,0,0,.18);opacity:.95}
@@ -104,7 +115,7 @@ button,select,input{font:inherit;color:inherit}
 .winfo .bk.old{color:var(--danger)}
 .lr input{width:100%;height:26px;border:1px solid var(--accent);border-radius:6px;background:var(--panel);padding:0 6px;-webkit-user-select:text;user-select:text}
 .ltools{display:flex;flex-wrap:wrap;gap:0;justify-content:space-between}
-.ltools .ib{width:30px;height:34px}
+.ltools .ib{width:27px;height:34px}
 .ltools .ib svg{width:19px;height:19px}
 .props{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center;font-size:12px;color:var(--muted)}
 .props select{height:30px;border-radius:8px;border:1px solid var(--line);background:var(--panel);padding:0 6px}
@@ -228,6 +239,8 @@ input[type=range]{accent-color:var(--accent);width:100%}
 #tip.show{opacity:1;transform:none}
 #tip b{display:block;font-weight:600}
 #tip span{display:block;color:#b9bfcc;font-size:12px}
+/* 세로가 짧은 화면: 색 고르기를 낮게 해서 레이어 목록 자리를 넓힘 */
+@media (max-height:920px){#sv{aspect-ratio:2.4}#colorCard{gap:6px}}
 @media (max-width:1000px){
   #side{position:absolute;right:8px;top:8px;bottom:8px;z-index:15;transform:translateX(calc(100% + 24px));transition:transform .2s;box-shadow:0 12px 32px rgba(0,0,0,.2);border-radius:12px}
   #side:not(.open){visibility:hidden;transition:transform .2s,visibility 0s .2s}
@@ -326,8 +339,21 @@ input[type=range]{accent-color:var(--accent);width:100%}
           <span>합성</span><select id="lBlend"></select>
         </div>
         <label class="lockrow"><input type="checkbox" id="lLock"> 투명 픽셀 잠금 <span style="color:var(--muted)">(선 안쪽만 칠하기)</span></label>
+        <div class="lopts" id="lOpts">
+          <button id="oClip" title="아래 레이어에 클리핑 · 바로 아래 레이어의 그림 안쪽에만 보여요">아래에 클리핑</button>
+          <button id="oRef" title="참조 레이어 · 채우기가 이 레이어의 선을 기준으로 칠해요">참조</button>
+          <button id="oLock" title="레이어 잠금 · 그리기·지우기·변형을 막아요">잠금</button>
+          <button id="oMask" title="레이어 마스크 · 지우지 않고 가리기. 선택 범위가 있으면 그 안만 보이게 만들어요">마스크 추가</button>
+        </div>
+        <div class="lopts" id="lMaskOpts" hidden>
+          <button id="mEdit" title="마스크 편집 · 그리면 보이고, 지우개로 지우면 가려져요">마스크 편집</button>
+          <button id="mOn">마스크 끄기</button>
+          <button id="mApply" title="마스크 적용 · 가려진 부분을 실제로 지우고 마스크를 없애요">적용</button>
+          <button id="mDel">마스크 삭제</button>
+        </div>
         <div class="ltools">
           <button class="ib" id="lAdd" title="새 레이어" data-i="plus"></button>
+          <button class="ib" id="lFolder" title="새 폴더 · 고른 레이어를 새 폴더에 넣어요" data-i="folderPlus"></button>
           <button class="ib" id="lDup" title="복제" data-i="copy"></button>
           <button class="ib" id="lUp" title="위로" data-i="up"></button>
           <button class="ib" id="lDown" title="아래로" data-i="down"></button>
@@ -466,7 +492,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 <script>
 (()=>{
 "use strict";
-const VERSION='v2.0';
+const VERSION='v2.1';
 const $=s=>document.querySelector(s);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const IN_ARTIFACT=!!window.claude;
@@ -523,6 +549,9 @@ const IC={
  moon:"M20 14A8 8 0 1 1 10 4a6.5 6.5 0 0 0 10 10z",
  neon:"M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z",
  rainbow:"M3 17a9 9 0 0 1 18 0M6 17a6 6 0 0 1 12 0M9 17a3 3 0 0 1 6 0",
+ folder:"M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z",
+ folderPlus:"M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM12 10.5v5M9.5 13h5",
+ caretR:"M10 7l5 5-5 5",caretD:"M7 10l5 5 5-5",
  resize:"M4 9V4h5M4 4l6 6M20 15v5h-5M20 20l-6-6M14 4h6v6M10 20H4v-6"
 };
 const svg=n=>`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[n]}"/></svg>`;
@@ -593,10 +622,27 @@ function saveSettings(){try{localStorage.setItem('bg-settings',JSON.stringify({S
 const mk=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
 let DOC={w:2400,h:1500}, layers=[], active=0, nameSeq=1, idSeq=1;
 let strokeBuf,sctx,beforeC,bctx,work,wctx,cbuf,cctx;
-function newLayer(name){const c=mk(DOC.w,DOC.h);return{id:idSeq++,name:name||('레이어 '+(nameSeq++)),canvas:c,ctx:c.getContext('2d'),opacity:1,blend:'source-over',visible:true,lockAlpha:false};}
-function allocBuffers(){strokeBuf=mk(DOC.w,DOC.h);sctx=strokeBuf.getContext('2d');beforeC=mk(DOC.w,DOC.h);bctx=beforeC.getContext('2d');work=mk(DOC.w,DOC.h);wctx=work.getContext('2d');cbuf=mk(DOC.w,DOC.h);cctx=cbuf.getContext('2d');}
+function newLayer(name){const c=mk(DOC.w,DOC.h);return{id:idSeq++,name:name||('레이어 '+(nameSeq++)),canvas:c,ctx:c.getContext('2d'),opacity:1,blend:'source-over',visible:true,lockAlpha:false,parent:null,clip:false,ref:false,locked:false,mask:null,maskOn:true,editMask:false};}
+let folderSeq=1;
+function newFolder(name){return{id:idSeq++,type:'folder',name:name||('폴더 '+(folderSeq++)),opacity:1,blend:'pass-through',visible:true,open:true,parent:null,locked:false};}
+const isF=l=>l&&l.type==='folder';
+const kids=pid=>layers.filter(l=>(l.parent??null)===pid);
+const byId=id=>layers.find(l=>l.id===id);
+function ancestors(l){const out=[];let p=l&&l.parent!=null?byId(l.parent):null;while(p){out.push(p);p=p.parent!=null?byId(p.parent):null;}return out;}
+const effVis=l=>l.visible&&ancestors(l).every(a=>a.visible);
+function descendants(F){const out=[];const rec=id=>layers.forEach(l=>{if(l.parent===id){out.push(l);if(isF(l))rec(l.id);}});rec(F.id);return out;}
+const blockOf=L=>isF(L)?[...descendants(L),L]:[L];
+function newMask(L,fromSel){const c=mk(DOC.w,DOC.h),x=c.getContext('2d');x.fillStyle='#fff';if(fromSel&&SEL){x.save();selClip(x);x.fillRect(0,0,DOC.w,DOC.h);x.restore();}else x.fillRect(0,0,DOC.w,DOC.h);return{canvas:c,ctx:x};}
+function maskProxy(L){if(!L.mproxy||L.mproxy.canvas!==L.mask.canvas)L.mproxy={id:L.id+'m',isMask:true,owner:L,canvas:L.mask.canvas,ctx:L.mask.ctx,lockAlpha:false,visible:true,name:L.name+' 마스크'};return L.mproxy;}
+// 지금 그리기·채우기·변형이 들어갈 곳: 레이어 그림, 또는 마스크 편집 중이면 마스크
+function editTarget(quiet){const L=layers[active];if(!L)return null;const say=t=>{if(!quiet)toast(t);return null;};
+  if(isF(L))return say('폴더에는 그릴 수 없어요. 폴더 안의 레이어를 고르세요');
+  if(L.locked||ancestors(L).some(a=>a.locked))return say('잠긴 레이어예요. 레이어 아래 옵션에서 잠금을 푸세요');
+  if(!effVis(L))return say('숨긴 레이어예요. 눈 아이콘을 켜고 그리세요');
+  return L.editMask&&L.mask?maskProxy(L):L;}
+function allocBuffers(){POOL.clear();strokeBuf=mk(DOC.w,DOC.h);sctx=strokeBuf.getContext('2d');beforeC=mk(DOC.w,DOC.h);bctx=beforeC.getContext('2d');work=mk(DOC.w,DOC.h);wctx=work.getContext('2d');cbuf=mk(DOC.w,DOC.h);cctx=cbuf.getContext('2d');}
 function initDoc(w,h,blank){
-  DOC={w,h};layers=[];nameSeq=1;SEL=null;SELD=null;TF=null;
+  DOC={w,h};layers=[];nameSeq=1;folderSeq=1;SEL=null;SELD=null;TF=null;editVer++;
   if(!blank){const bg=newLayer('배경');bg.ctx.fillStyle='#ffffff';bg.ctx.fillRect(0,0,w,h);layers.push(bg);layers.push(newLayer());active=1;}
   allocBuffers();hist=[];redoS=[];updHist();updBars();
 }
@@ -660,6 +706,36 @@ const wetPad=b=>Math.ceil(Math.max(2,b.size*.18))*2;
 function wetify(src,x,y,w,h,b){const rb=Math.max(2,b.size*.18),c=mk(w,h),cx=c.getContext('2d'),e=mk(w,h),ex=e.getContext('2d');
   ex.drawImage(src,x,y,w,h,0,0,w,h);ex.globalCompositeOperation='destination-out';ex.filter=`blur(${rb.toFixed(1)}px)`;ex.drawImage(src,x,y,w,h,0,0,w,h);ex.filter='none';
   cx.globalAlpha=1-.5*b.wet;cx.drawImage(src,x,y,w,h,0,0,w,h);cx.globalAlpha=Math.min(1,b.wet*1.4);cx.drawImage(e,0,0);return c;}
+/* 레이어 합성: 폴더(통과/일반) · 클리핑(바로 아래 레이어 안쪽에만) · 마스크를 트리 순서대로 그림. 화면·내보내기·채우기 모두 같은 함수 */
+const POOL=new Map();
+function pool(k){let p=POOL.get(k);if(!p||p.c.width!==DOC.w||p.c.height!==DOC.h){const c=mk(DOC.w,DOC.h);p={c,x:c.getContext('2d')};POOL.set(k,p);}p.x.setTransform(1,0,0,1,0,0);return p;}
+function leafImg(L){
+  let src=L.canvas;if(S&&!S.smudge&&S.T===L)src=composeActive(L);
+  if(L.mask&&L.maskOn){const m=(S&&!S.smudge&&S.T&&S.T.isMask&&S.T.owner===L)?composeActive(S.T):L.mask.canvas;
+    const p=pool('m');p.x.globalAlpha=1;p.x.globalCompositeOperation='copy';p.x.drawImage(src,0,0);p.x.globalCompositeOperation='destination-in';p.x.drawImage(m,0,0);p.x.globalCompositeOperation='source-over';src=p.c;}
+  return src;}
+function drawTF(ctx){const m=tfMatrix();ctx.save();ctx.transform(m.a,m.b,m.c,m.d,m.e,m.f);ctx.imageSmoothingEnabled=true;ctx.drawImage(TF.c,0,0);ctx.restore();}
+function drawList(ctx,nodes,d,only){
+  for(let i=0;i<nodes.length;i++){const n=nodes[i];
+    if(isF(n)){if(!n.visible)continue;const ch=kids(n.id);
+      if(n.blend==='pass-through'&&n.opacity>=1)drawList(ctx,ch,d+1,only);
+      else{const p=pool('f'+d);p.x.globalAlpha=1;p.x.globalCompositeOperation='source-over';p.x.clearRect(0,0,DOC.w,DOC.h);drawList(p.x,ch,d+1,only);
+        ctx.globalAlpha=n.opacity;ctx.globalCompositeOperation=n.blend==='pass-through'?'source-over':n.blend;ctx.drawImage(p.c,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';}
+      continue;}
+    const clips=[];for(let j=i+1;j<nodes.length&&nodes[j].clip&&!isF(nodes[j]);j++)clips.push(nodes[j]);
+    const skip=clips.length;
+    if(!n.visible||(only&&!only(n))){i+=skip;continue;}
+    let img=leafImg(n);const vc=clips.filter(c=>c.visible&&(!only||only(c)));
+    if(vc.length){const p=pool('c'+d),x=p.x;x.globalAlpha=1;x.globalCompositeOperation='copy';x.drawImage(img,0,0);x.globalCompositeOperation='source-over';if(TF&&TF.L===n)drawTF(x);
+      for(const c of vc){const ci=leafImg(c);
+        if(c.blend==='source-over'){x.globalCompositeOperation='source-atop';x.globalAlpha=c.opacity;x.drawImage(ci,0,0);if(TF&&TF.L===c)drawTF(x);}
+        else{const q=pool('k'+d),y=q.x;y.globalAlpha=1;y.globalCompositeOperation='copy';y.drawImage(p.c,0,0);y.globalCompositeOperation=c.blend;y.globalAlpha=c.opacity;y.drawImage(ci,0,0);if(TF&&TF.L===c)drawTF(y);
+          y.globalAlpha=1;y.globalCompositeOperation='source-over';x.globalCompositeOperation='source-atop';x.globalAlpha=1;x.drawImage(q.c,0,0);}
+        x.globalAlpha=1;x.globalCompositeOperation='source-over';}
+      img=p.c;ctx.globalAlpha=n.opacity;ctx.globalCompositeOperation=n.blend;ctx.drawImage(img,0,0);}
+    else{ctx.globalAlpha=n.opacity;ctx.globalCompositeOperation=n.blend;ctx.drawImage(img,0,0);if(TF&&TF.L===n)drawTF(ctx);}
+    ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';i+=skip;}
+}
 function strokePts(pts,T,closed){
   if(!pts||pts.length<2)return;
   vctx.save();vctx.setTransform(T);vctx.beginPath();vctx.moveTo(pts[0].x,pts[0].y);for(let i=1;i<pts.length;i++)vctx.lineTo(pts[i].x,pts[i].y);if(closed)vctx.closePath();
@@ -677,11 +753,7 @@ function render(){
   if(!checkerPat)checkerPat=vctx.createPattern(checker,'repeat');
   vctx.fillStyle=checkerPat;vctx.fillRect(0,0,DOC.w,DOC.h);vctx.restore();
   vctx.imageSmoothingEnabled=V.s<1.8;vctx.imageSmoothingQuality='medium';
-  for(let i=0;i<layers.length;i++){const L=layers[i];if(!L.visible)continue;
-    const src=(S&&i===active&&!S.smudge)?composeActive(L):L.canvas;
-    vctx.globalAlpha=L.opacity;vctx.globalCompositeOperation=L.blend;vctx.drawImage(src,0,0);
-    if(TF&&TF.L===L){vctx.save();vctx.setTransform(T.multiply(tfMatrix()));vctx.imageSmoothingEnabled=true;vctx.drawImage(TF.c,0,0);vctx.restore();}
-  }
+  drawList(vctx,kids(null),0);
   vctx.globalAlpha=1;vctx.globalCompositeOperation='source-over';
   // 끈 보정 안내선
   if(S&&S.penPos&&ST.stabMode==='rope'){const a=toScr(S.sm),b=toScr(S.penPos);vctx.save();vctx.setTransform(DPR,0,0,DPR,0,0);vctx.strokeStyle='rgba(120,128,140,.8)';vctx.lineWidth=1;vctx.setLineDash([3,3]);vctx.beginPath();vctx.moveTo(a.x,a.y);vctx.lineTo(b.x,b.y);vctx.stroke();vctx.setLineDash([]);vctx.beginPath();vctx.arc(b.x,b.y,4,0,7);vctx.stroke();vctx.restore();}
@@ -719,6 +791,8 @@ function drawSV(){const w=svC.width,h=svC.height;svX.fillStyle=`hsl(${color.h},1
 function colorChanged(fromHex){const hx=curHex();$('#cur').style.background=hx;$('#curBtn').style.background=hx;if(!fromHex)$('#hex').value=hx;drawSV();drawHue();stampCache.clear();saveSettings();if(!$('#brushPop').hidden)drawPreviews();}
 function setHex(hx){const[r,g,b]=hex2rgb(hx);const c=rgb2hsv(r,g,b);if(c.s===0||c.v===0)c.h=color.h;color=c;colorChanged();}
 function dragOn(el,fn){el.addEventListener('pointerdown',e=>{el.setPointerCapture(e.pointerId);fn(e);const mv=ev=>fn(ev);const up=()=>{el.removeEventListener('pointermove',mv);el.removeEventListener('pointerup',up);el.removeEventListener('pointercancel',up);};el.addEventListener('pointermove',mv);el.addEventListener('pointerup',up);el.addEventListener('pointercancel',up);});}
+// 색 칸 높이가 화면에 따라 바뀌어도 동그라미가 찌그러지지 않게 캔버스 비율을 맞춤
+new ResizeObserver(()=>{const r=svC.getBoundingClientRect();if(r.width>0){const h=Math.max(60,Math.round(300*r.height/r.width));if(svC.height!==h){svC.height=h;drawSV();}}}).observe(svC);
 dragOn(svC,e=>{const r=svC.getBoundingClientRect();color.s=clamp((e.clientX-r.left)/r.width,0,1);color.v=clamp(1-(e.clientY-r.top)/r.height,0,1);colorChanged();});
 dragOn(hueC,e=>{const r=hueC.getBoundingClientRect();color.h=clamp((e.clientX-r.left)/r.width,0,.9999)*360;colorChanged();});
 $('#hex').addEventListener('input',e=>{const v=e.target.value.trim();if(/^#?([0-9a-f]{6}|[0-9a-f]{3})$/i.test(v)){const[r,g,b]=hex2rgb(v);const c=rgb2hsv(r,g,b);if(c.s===0||c.v===0)c.h=color.h;color=c;colorChanged(true);}});
@@ -819,13 +893,12 @@ function segment(a,b){
   S.carry=t-d;S.dist+=d;
 }
 function beginStroke(pt,eraser){
-  const L=layers[active];
-  if(!L.visible){toast('숨긴 레이어예요. 눈 아이콘을 눌러 켜고 그리세요');return false;}
+  const L=editTarget();if(!L)return false;
   const name=eraser?'eraser':(PAINT.includes(tool)?tool:lastBrush);
   copyInto(beforeC,L.canvas);
   sctx.setTransform(1,0,0,1,0,0);sctx.globalCompositeOperation='source-over';sctx.clearRect(0,0,DOC.w,DOC.h);
   pt={...pt,p:curveP(pt.p,BR[name])};
-  S={name,b:BR[name],eraser,ctx:sctx,stamp:getStamp(name),opacity:BR[name].opacity,last:{...pt},sm:{...pt},cl:{...pt},pend:[],v:0,tl:pt.tl?convTilt(pt.tl):null,carry:0,dist:0,bb:[1e9,1e9,-1e9,-1e9],t0:performance.now(),clip:false,raw:[{...pt}],len:0,pred:null,shape:null};
+  S={name,b:BR[name],eraser,ctx:sctx,stamp:getStamp(name),opacity:BR[name].opacity,last:{...pt},sm:{...pt},cl:{...pt},pend:[],v:0,tl:pt.tl?convTilt(pt.tl):null,carry:0,dist:0,bb:[1e9,1e9,-1e9,-1e9],t0:performance.now(),clip:false,raw:[{...pt}],len:0,pred:null,shape:null,T:L};
   S.dir=0;S.tint=needMask(name,BR[name])&&!eraser&&!isDirect(BR[name])&&BR[name].tip!=='tone';
   if(BR[name].tip==='tone'){S.toneC=mk(Math.ceil(BR[name].size*1.2)+4,Math.ceil(BR[name].size*1.2)+4);const tp=mk(8,8),tx=tp.getContext('2d');tx.fillStyle=curHex();tx.beginPath();tx.arc(4,4,2.1,0,7);tx.fill();S.toneFill=S.toneC.getContext('2d').createPattern(tp,'repeat');}
   if(isDirect(BR[name])&&!eraser){
@@ -920,7 +993,7 @@ function trySnap(){
 }
 function clearBuf(){if(S&&S.clip)sctx.restore();if(S&&S.cclip)cctx.restore();sctx.setTransform(1,0,0,1,0,0);sctx.clearRect(0,0,DOC.w,DOC.h);if(S&&S.tail)cctx.clearRect(0,0,DOC.w,DOC.h);}
 function endStroke(){
-  if(!S)return;const L=layers[active];clearTimeout(S.holdT);
+  if(!S)return;const L=S.T;clearTimeout(S.holdT);
   if(S.smudge){if(S.lclip)L.ctx.restore();}
   else{if(!S.shape)flushTail();
     const wet=S.b.wet&&!S.eraser,pd=wet?wetPad(S.b):2,bb=S.bb,x=Math.max(0,Math.floor(bb[0])-pd),y=Math.max(0,Math.floor(bb[1])-pd),x2=Math.min(DOC.w,Math.ceil(bb[2])+pd),y2=Math.min(DOC.h,Math.ceil(bb[3])+pd);
@@ -930,7 +1003,7 @@ function endStroke(){
   if(!S.eraser&&!S.smudge&&!S.b.fixColor)pushRecent();
   clearBuf();S=null;thumb(L);dirty();changed();
 }
-function cancelStroke(){if(S){clearTimeout(S.holdT);if(S.smudge){const L=layers[active];if(S.lclip)L.ctx.restore();copyInto(L.canvas,beforeC);}}clearBuf();S=null;dirty();}
+function cancelStroke(){if(S){clearTimeout(S.holdT);if(S.smudge){const L=S.T;if(S.lclip)L.ctx.restore();copyInto(L.canvas,beforeC);}}clearBuf();S=null;dirty();}
 
 /* ---------- 기록 (실행 취소) ---------- */
 let hist=[],redoS=[];const HMAX=60,HBYTES=300*1048576;
@@ -940,12 +1013,13 @@ function pushPx(L,x,y,w,h,beforeSrc){push(pxEntry(L,x,y,w,h,beforeSrc));}
 // 실행 취소 기록이 메모리를 너무 많이 쓰지 않게 단계 수(60)와 용량(300MB) 둘 다로 제한
 function entryBytes(e){if(e.sz!=null)return e.sz;let n=0;if(e.t==='px')n=e.w*e.h*8;else if(e.t==='rs')n=[...e.before.cs,...e.after.cs].reduce((a,o)=>a+o.c.width*o.c.height*4,0);else if(e.t==='grp')n=e.items.reduce((a,x)=>a+entryBytes(x),0);return e.sz=n;}
 function push(e){hist.push(e);let tot=hist.reduce((a,x)=>a+entryBytes(x),0);while(hist.length>1&&(hist.length>HMAX||tot>HBYTES))tot-=entryBytes(hist.shift());redoS=[];updHist();}
-const snap=()=>({list:layers.map(l=>({l,opacity:l.opacity,blend:l.blend,visible:l.visible,name:l.name,lockAlpha:l.lockAlpha})),active});
-function restore(s){layers=s.list.map(o=>{Object.assign(o.l,{opacity:o.opacity,blend:o.blend,visible:o.visible,name:o.name,lockAlpha:o.lockAlpha});return o.l;});active=clamp(s.active,0,layers.length-1);}
+const LPROPS=['opacity','blend','visible','name','lockAlpha','parent','clip','ref','locked','open','mask','maskOn','editMask'];
+const snap=()=>({list:layers.map(l=>{const o={l};LPROPS.forEach(k=>o[k]=l[k]);return o;}),active});
+function restore(s){layers=s.list.map(o=>{LPROPS.forEach(k=>o.l[k]=o[k]);return o.l;});active=clamp(s.active,0,layers.length-1);}
 function apply(e,undo){
   if(e.t==='px'){const c=e.L.ctx;c.clearRect(e.x,e.y,e.w,e.h);c.drawImage(undo?e.before:e.after,e.x,e.y);thumb(e.L);}
   else if(e.t==='st')restore(undo?e.before:e.after);
-  else if(e.t==='rs'){const s=undo?e.before:e.after;DOC={w:s.w,h:s.h};s.cs.forEach(({L,c})=>{L.canvas=c;L.ctx=c.getContext('2d');});allocBuffers();SEL=null;SELD=null;updBars();fitView();}
+  else if(e.t==='rs'){const s=undo?e.before:e.after;DOC={w:s.w,h:s.h};s.cs.forEach(({L,c,m})=>{L.canvas=c;L.ctx=c.getContext('2d');if(m&&L.mask){L.mask.canvas=m;L.mask.ctx=m.getContext('2d');}});allocBuffers();SEL=null;SELD=null;updBars();fitView();}
   else if(e.t==='grp'){const it=undo?[...e.items].reverse():e.items;it.forEach(x=>apply(x,undo));}
 }
 function undo(){if(S)return;if(TF){cancelTF();toast('변형을 취소했어요');return;}const e=hist.pop();if(!e){toast('더 되돌릴 게 없어요');return;}apply(e,true);redoS.push(e);updHist();renderLayers();dirty();changed();toast('실행 취소');}
@@ -981,9 +1055,9 @@ $('#selBar').querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{ST.selMode=b
 $('#sAll').onclick=selectAll;
 $('#sInv').onclick=()=>{if(SEL){SEL.invert=!SEL.invert;dirty();toast(SEL.invert?'선택 바깥쪽이 선택됐어요':'선택 안쪽으로 돌아왔어요');}};
 $('#sNone').onclick=()=>{SEL=null;updBars();dirty();};
-$('#sDel').onclick=()=>{if(!SEL)return;const L=layers[active];copyInto(beforeC,L.canvas);L.ctx.save();selClip(L.ctx);L.ctx.clearRect(0,0,DOC.w,DOC.h);L.ctx.restore();
+$('#sDel').onclick=()=>{if(!SEL)return;const L=editTarget();if(!L)return;copyInto(beforeC,L.canvas);L.ctx.save();selClip(L.ctx);L.ctx.clearRect(0,0,DOC.w,DOC.h);L.ctx.restore();
   const[x,y,w,h]=selBBox();if(w&&h)pushPx(L,x,y,w,h,beforeC);thumb(L);dirty();changed();toast('선택한 부분을 지웠어요');};
-$('#sCopy').onclick=()=>{if(!SEL)return;const src=layers[active];structOp(()=>{const L=newLayer(src.name+' 조각');L.ctx.save();selClip(L.ctx);L.ctx.drawImage(src.canvas,0,0);L.ctx.restore();layers.splice(active+1,0,L);active++;});toast('새 레이어로 복사했어요');};
+$('#sCopy').onclick=()=>{if(!SEL)return;const src=layers[active];if(isF(src)){toast('폴더는 복사할 수 없어요. 레이어를 고르세요');return;}structOp(()=>{const L=newLayer(src.name+' 조각');L.parent=src.parent;L.ctx.save();selClip(L.ctx);L.ctx.drawImage(src.canvas,0,0);L.ctx.restore();layers.splice(active+1,0,L);active++;});toast('새 레이어로 복사했어요');};
 $('#sTf').onclick=()=>startTransform();
 $('#sCrop').onclick=()=>{if(!SEL)return;if(SEL.invert){toast('반전된 선택으로는 자를 수 없어요');return;}const[x,y,w,h]=selBBox();if(w<16||h<16){toast('16 픽셀보다 작게는 자를 수 없어요');return;}
   resizeDoc(w,h,{mode:'canvas',ox:-x,oy:-y,fill:false});toast(`${w}×${h} 로 잘랐어요 · 두 손가락 탭으로 되돌리기`);};
@@ -994,8 +1068,8 @@ function contentBBox(L){const d=L.ctx.getImageData(0,0,DOC.w,DOC.h).data;let a=D
   for(let y=0;y<DOC.h;y++){const row=y*DOC.w*4;for(let x=0;x<DOC.w;x++){if(d[row+x*4+3]){if(x<a)a=x;if(x>c)c=x;if(y<b)b=y;if(y>e)e=y;}}}
   return c<0?null:[a,b,c-a+1,e-b+1];}
 function startTransform(){
-  if(TF)return;const L=layers[active];
-  if(!L.visible){toast('숨긴 레이어는 변형할 수 없어요');return;}
+  if(TF)return;const L=editTarget();if(!L)return;
+  if(L.isMask){toast('마스크는 변형할 수 없어요. 그림 편집으로 바꾼 뒤 변형하세요');return;}
   let bb=SEL?selBBox():contentBBox(L);
   if(!bb||!bb[2]||!bb[3]){toast(SEL?'선택한 곳이 비어 있어요':'이 레이어는 비어 있어요');return;}
   const[x,y,w,h]=bb;copyInto(beforeC,L.canvas);
@@ -1034,11 +1108,15 @@ $('#tfFV').onclick=()=>{if(TF){TF.sy*=-1;dirty();}};
 $('#tfReset').onclick=()=>{if(TF){Object.assign(TF,{tx:TF.x0+TF.w/2,ty:TF.y0+TF.h/2,sx:1,sy:1,rot:0});dirty();}};
 
 /* ---------- 채우기 · 스포이드 ---------- */
-function merged(){const c=mk(DOC.w,DOC.h),x=c.getContext('2d',{willReadFrequently:true});layers.forEach(L=>{if(!L.visible)return;x.globalAlpha=L.opacity;x.globalCompositeOperation=L.blend;x.drawImage(L.canvas,0,0);});x.globalAlpha=1;x.globalCompositeOperation='source-over';return c;}
+function merged(only){const c=mk(DOC.w,DOC.h),x=c.getContext('2d',{willReadFrequently:true});drawList(x,kids(null),0,only);return c;}
+let editVer=0,mCache=null,mCacheVer=-1;
+function mergedCached(){if(!mCache||mCacheVer!==editVer||mCache.width!==DOC.w||mCache.height!==DOC.h){mCache=merged();mCacheVer=editVer;}return mCache;}
 function floodFill(px,py){
-  const L=layers[active];if(!L.visible){toast('숨긴 레이어예요');return;}
+  const L=editTarget();if(!L)return;
   const W=DOC.w,H=DOC.h;const x0=Math.floor(px),y0=Math.floor(py);if(x0<0||y0<0||x0>=W||y0>=H)return;
-  const src=ST.fillAll?merged():L.canvas;
+  // 참조 레이어가 있으면 그 레이어들의 선만 기준으로, 없으면 설정대로(모든 레이어 / 지금 레이어)
+  const hasRef=layers.some(l=>l.ref&&!isF(l)&&effVis(l));
+  const src=hasRef?merged(l=>!!l.ref):ST.fillAll?merged():L.canvas;
   const d=src.getContext('2d').getImageData(0,0,W,H).data;
   const i0=(y0*W+x0)*4,tr=d[i0],tg=d[i0+1],tb=d[i0+2],ta=d[i0+3],tol=ST.tol;
   const mask=new Uint8Array(W*H);
@@ -1064,9 +1142,7 @@ function floodFill(px,py){
 const pickC=mk(1,1),pickX=pickC.getContext('2d',{willReadFrequently:true});
 function sampleAt(px,py){
   const x=Math.floor(px),y=Math.floor(py);if(x<0||y<0||x>=DOC.w||y>=DOC.h)return null;
-  pickX.globalCompositeOperation='copy';pickX.fillStyle='rgba(0,0,0,0)';pickX.fillRect(0,0,1,1);
-  layers.forEach(L=>{if(!L.visible)return;pickX.globalAlpha=L.opacity;pickX.globalCompositeOperation=L.blend;pickX.drawImage(L.canvas,x,y,1,1,0,0,1,1);});
-  pickX.globalAlpha=1;pickX.globalCompositeOperation='source-over';const d=pickX.getImageData(0,0,1,1).data;return d[3]<8?null:rgb2hex(d[0],d[1],d[2]);
+  const d=mergedCached().getContext('2d',{willReadFrequently:true}).getImageData(x,y,1,1).data;return d[3]<8?null:rgb2hex(d[0],d[1],d[2]);
 }
 function pick(px,py){const c=sampleAt(px,py);if(c===null){if(px>=0&&py>=0&&px<DOC.w&&py<DOC.h)toast('투명한 곳이에요');return false;}
   setHex(c);toast('색을 가져왔어요 '+curHex());return true;}
@@ -1339,37 +1415,80 @@ $('#brushFile').onchange=async e=>{const f=e.target.files[0];e.target.value='';i
 const BLENDS=[['source-over','보통'],['multiply','곱하기'],['screen','스크린'],['overlay','오버레이'],['darken','어둡게'],['lighten','밝게'],['color-dodge','닷지(밝게)'],['color-burn','번(어둡게)'],['soft-light','소프트 라이트'],['hard-light','하드 라이트'],['lighter','더하기(발광)'],['difference','차이'],['hue','색조'],['saturation','채도'],['color','색상'],['luminosity','광도']];
 $('#lBlend').innerHTML=BLENDS.map(([v,n])=>`<option value="${v}">${n}</option>`).join('');
 const thumbs=new Map();
-function thumb(L){const c=thumbs.get(L.id);if(!c)return;const x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);x.drawImage(L.canvas,0,0,c.width,c.height);}
+function thumb(L){if(!L||!L.canvas)return;const c=thumbs.get(L.id);if(!c)return;const x=c.getContext('2d');x.clearRect(0,0,c.width,c.height);
+  if(L.isMask){x.fillStyle='#222';x.fillRect(0,0,c.width,c.height);const t=mk(c.width,c.height),tx=t.getContext('2d');tx.drawImage(L.canvas,0,0,c.width,c.height);tx.globalCompositeOperation='source-in';tx.fillStyle='#fff';tx.fillRect(0,0,c.width,c.height);x.drawImage(t,0,0);}
+  else x.drawImage(L.canvas,0,0,c.width,c.height);}
+function treeRows(pid,depth,out){const ch=kids(pid);for(let k=ch.length-1;k>=0;k--){const L=ch[k];out.push([L,depth]);if(isF(L)&&L.open)treeRows(L.id,depth+1,out);}return out;}
 function renderLayers(){
   const el=$('#layerList');el.innerHTML='';thumbs.clear();
-  for(let i=layers.length-1;i>=0;i--){const L=layers[i];
-    const row=document.createElement('div');row.className='lr'+(i===active?' act':'')+(L.visible?'':' hid');
-    const tw=52*2,th=Math.max(2,Math.round(tw*DOC.h/DOC.w));const c=mk(tw,th);c.style.height=Math.min(40,Math.round(52*DOC.h/DOC.w))+'px';thumbs.set(L.id,c);
-    const nm=document.createElement('div');nm.className='nm';nm.innerHTML=`<b></b><span>${L.blend==='source-over'?'':(BLENDS.find(b=>b[0]===L.blend)||['',''])[1]+' · '}${Math.round(L.opacity*100)}%${L.lockAlpha?' · 잠금':''}</span>`;nm.querySelector('b').textContent=L.name;
+  const tw=52*2,th=Math.max(2,Math.round(tw*DOC.h/DOC.w)),cssH=Math.min(40,Math.round(52*DOC.h/DOC.w))+'px';
+  treeRows(null,0,[]).forEach(([L,depth])=>{const i=layers.indexOf(L);
+    const row=document.createElement('div');row.className='lr'+(i===active?' act':'')+(effVis(L)?'':' hid');row.dataset.i=i;
+    const grip=document.createElement('span');grip.className='grip';grip.title='끌어서 순서 바꾸기 · 열린 폴더 바로 아래에 놓으면 폴더 안으로 들어가요';grip.innerHTML=svg('grip');
+    grip.addEventListener('pointerdown',ev=>gripDrag(ev,row,L));grip.onclick=ev=>ev.stopPropagation();
+    const ind=document.createElement('span');ind.className='ind';ind.style.width=(depth*12)+'px';
+    const parts=[grip,ind];
+    if(L.clip&&!isF(L)){const cl=document.createElement('span');cl.className='cl';cl.textContent='↳';cl.title='아래 레이어에 클리핑됨';parts.push(cl);}
+    if(isF(L)){const f=document.createElement('button');f.className='fold';f.title=L.open?'폴더 닫기':'폴더 열기';f.innerHTML=svg(L.open?'caretD':'caretR')+svg('folder');f.style.display='flex';f.style.gap='0';
+      f.onclick=ev=>{ev.stopPropagation();L.open=!L.open;renderLayers();changed();};parts.push(f);}
+    else{const c=mk(tw,th);c.style.height=cssH;if(L.mask&&!L.editMask)c.classList.add('edit');thumbs.set(L.id,c);c.onclick=()=>{if(L.editMask){L.editMask=false;}};parts.push(c);
+      if(L.mask){const m=mk(Math.round(tw*.6),th);m.className='mk'+(L.editMask?' edit':'');m.style.height=cssH;m.title='마스크 · 눌러서 마스크 편집';thumbs.set(L.id+'m',m);
+        m.onclick=ev=>{ev.stopPropagation();active=i;L.editMask=!L.editMask;renderLayers();toast(L.editMask?'마스크 편집 중 · 그리면 보이고 지우개로 지우면 가려져요':'그림 편집으로 돌아왔어요');};parts.push(m);}}
+    const nm=document.createElement('div');nm.className='nm';
+    const bl=isF(L)?(L.blend==='pass-through'?'':(BLENDS.find(b=>b[0]===L.blend)||['',''])[1]+' · '):(L.blend==='source-over'?'':(BLENDS.find(b=>b[0]===L.blend)||['',''])[1]+' · ');
+    const tags=[L.ref?'참조':'',L.locked?'잠금':'',L.lockAlpha?'투명 잠금':'',L.mask&&!L.maskOn?'마스크 꺼짐':'',L.editMask?'마스크 편집':''].filter(Boolean).join(' · ');
+    nm.innerHTML=`<b></b><span>${bl}${Math.round(L.opacity*100)}%${tags?` · <span class="tags">${tags}</span>`:''}</span>`;nm.querySelector('b').textContent=L.name;
     const eye=document.createElement('button');eye.className='ib';eye.title=L.visible?'숨기기':'보이기';eye.innerHTML=svg(L.visible?'eye':'eyeoff');
     eye.onclick=ev=>{ev.stopPropagation();structOp(()=>{L.visible=!L.visible;});};
-    const grip=document.createElement('span');grip.className='grip';grip.title='끌어서 순서 바꾸기';grip.innerHTML=svg('grip');
-    grip.addEventListener('pointerdown',ev=>gripDrag(ev,row,i));grip.onclick=ev=>ev.stopPropagation();
-    row.append(grip,c,nm,eye);
+    row.append(...parts,nm,eye);
     row.onclick=()=>{if(active!==i){settleTF();active=i;renderLayers();}};
     nm.ondblclick=()=>rename(L,nm);
     let lp;row.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse')lp=setTimeout(()=>rename(L,nm),550);});row.addEventListener('pointerup',()=>clearTimeout(lp));row.addEventListener('pointerleave',()=>clearTimeout(lp));
-    el.appendChild(row);thumb(L);
-  }
-  const A=layers[active];$('#lOp').value=Math.round(A.opacity*100);$('#lBlend').value=A.blend;$('#lLock').checked=A.lockAlpha;
-  $('#layerCount').textContent=layers.length+'개';
-  $('#lDel').disabled=layers.length<=1;$('#lMerge').disabled=active===0;$('#lMergeVis').disabled=layers.filter(L=>L.visible).length<2;$('#lDown').disabled=active===0;$('#lUp').disabled=active===layers.length-1;
+    el.appendChild(row);if(!isF(L)){thumb(L);if(L.mask)thumb(maskProxy(L));}
+  });
+  const A=layers[active],F=isF(A);
+  $('#lOp').value=Math.round(A.opacity*100);
+  $('#lBlend').innerHTML=(F?[['pass-through','통과'],...BLENDS]:BLENDS).map(([v,n])=>`<option value="${v}">${n}</option>`).join('');$('#lBlend').value=A.blend;
+  $('#lLock').checked=!!A.lockAlpha;$('#lLock').disabled=F;
+  const sib=kids(A.parent??null),k=sib.indexOf(A),below=sib[k-1];
+  $('#oClip').disabled=F;$('#oClip').classList.toggle('on',!!A.clip);$('#oRef').disabled=F;$('#oRef').classList.toggle('on',!!A.ref);$('#oLock').classList.toggle('on',!!A.locked);
+  $('#oMask').disabled=F;$('#oMask').hidden=!!A.mask;$('#lMaskOpts').hidden=!A.mask;
+  if(A.mask){$('#mEdit').classList.toggle('on',!!A.editMask);$('#mEdit').textContent=A.editMask?'마스크 편집 중':'마스크 편집';$('#mOn').textContent=A.maskOn?'마스크 끄기':'마스크 켜기';}
+  const leaves=layers.filter(l=>!isF(l)).length;
+  $('#layerCount').textContent=leaves+'장'+(layers.length>leaves?` · 폴더 ${layers.length-leaves}`:'');
+  $('#lDel').disabled=!F&&leaves<=1||F&&leaves-blockOf(A).filter(l=>!isF(l)).length<1;
+  $('#lMerge').disabled=F||!below||isF(below);
+  $('#lMergeVis').disabled=layers.filter(l=>!isF(l)&&effVis(l)).length<2;
+  $('#lDown').disabled=k===0&&A.parent==null;$('#lUp').disabled=k===sib.length-1&&A.parent==null;
 }
-// 레이어 손잡이를 끌어 순서 바꾸기 (목록 위쪽 = 위 레이어)
-function gripDrag(e,row,i){
+// 블록(레이어 하나, 또는 폴더와 그 안 전부)을 떼어 내서 다른 자리에 끼움
+function takeBlock(L){const b=blockOf(L);const set=new Set(b);const arr=layers.filter(l=>set.has(l));layers=layers.filter(l=>!set.has(l));return arr;}
+function putBlock(arr,idx,parent){arr[arr.length-1].parent=parent;layers.splice(idx,0,...arr);}
+const lowIdx=A=>Math.min(...blockOf(A).map(l=>layers.indexOf(l)));
+function placeBelow(L,A){const arr=takeBlock(L);putBlock(arr,lowIdx(A),A.parent??null);}
+function placeAbove(L,A){const arr=takeBlock(L);putBlock(arr,layers.indexOf(A)+1,A.parent??null);}
+function placeInto(L,F){const arr=takeBlock(L);putBlock(arr,layers.indexOf(F),F.id);}
+function moveStep(L,dir){const sib=kids(L.parent??null),k=sib.indexOf(L);
+  if(dir>0){if(k<sib.length-1)placeAbove(L,sib[k+1]);else if(L.parent!=null)placeAbove(L,byId(L.parent));else return false;}
+  else{if(k>0)placeBelow(L,sib[k-1]);else if(L.parent!=null)placeBelow(L,byId(L.parent));else return false;}return true;}
+// 레이어 손잡이를 끌어 순서 바꾸기 (목록 위쪽 = 위 레이어). 열린 폴더 바로 아래에 놓으면 그 폴더 안 맨 위로
+function gripDrag(e,row,L){
   e.stopPropagation();e.preventDefault();settleTF();const g=e.currentTarget;try{g.setPointerCapture(e.pointerId);}catch(_){}
-  const list=$('#layerList'),rows=[...list.children],from=rows.indexOf(row),others=rows.filter(r=>r!==row);
+  const list=$('#layerList'),rows=[...list.children],hide=new Set(blockOf(L).map(l=>layers.indexOf(l)));
+  const others=rows.filter(r=>r!==row&&!hide.has(+r.dataset.i));
   const y0=e.clientY,mids=others.map(r=>{const b=r.getBoundingClientRect();return b.top+b.height/2;}),rb=row.getBoundingClientRect(),mid0=rb.top+rb.height/2;
-  let tgt=from,moved=false;row.classList.add('drag');
+  let tgt=others.findIndex(r=>r.getBoundingClientRect().top>rb.top);if(tgt<0)tgt=others.length;let moved=false;row.classList.add('drag');
   const mv=ev=>{const dy=ev.clientY-y0;if(Math.abs(dy)>3)moved=true;row.style.transform=`translateY(${dy}px)`;const y=mid0+dy;tgt=mids.filter(m=>m<y).length;
     others.forEach(r=>r.classList.remove('dropA','dropB'));if(tgt<others.length)others[tgt].classList.add('dropA');else if(others.length)others[others.length-1].classList.add('dropB');};
   const up=()=>{g.removeEventListener('pointermove',mv);g.removeEventListener('pointerup',up);g.removeEventListener('pointercancel',up);
-    const j=layers.length-1-tgt;if(moved&&j!==i)structOp(()=>{const L=layers.splice(i,1)[0];layers.splice(j,0,L);active=j;});else renderLayers();};
+    if(!moved){renderLayers();return;}
+    const above=tgt>0?layers[+others[tgt-1].dataset.i]:null,below=tgt<others.length?layers[+others[tgt].dataset.i]:null;
+    const bad=F=>F&&(F===L||ancestors(F).includes(L));
+    structOp(()=>{const keep=layers[active];
+      if(above&&isF(above)&&above.open&&!bad(above))placeInto(L,above);
+      else if(above&&!bad(above))placeBelow(L,above);
+      else if(below&&!bad(below))placeAbove(L,below);
+      active=layers.indexOf(keep);});};
   g.addEventListener('pointermove',mv);g.addEventListener('pointerup',up);g.addEventListener('pointercancel',up);
 }
 function rename(L,nm){const inp=document.createElement('input');inp.value=L.name;inp.id='renameInput';nm.replaceChildren(inp);inp.focus();inp.select();
@@ -1381,26 +1500,57 @@ $('#lOp').addEventListener('input',e=>{if(!opBefore)opBefore=snap();layers[activ
 $('#lOp').addEventListener('change',()=>{if(opBefore){push({t:'st',before:opBefore,after:snap()});opBefore=null;}renderLayers();changed();});
 $('#lBlend').addEventListener('change',e=>structOp(()=>{layers[active].blend=e.target.value;}));
 $('#lLock').addEventListener('change',e=>structOp(()=>{layers[active].lockAlpha=e.target.checked;}));
-$('#lAdd').onclick=()=>structOp(()=>{layers.splice(active+1,0,newLayer());active++;});
-$('#lDup').onclick=()=>structOp(()=>{const s=layers[active];const L=newLayer(s.name+' 복사');L.ctx.drawImage(s.canvas,0,0);Object.assign(L,{opacity:s.opacity,blend:s.blend,lockAlpha:s.lockAlpha});layers.splice(active+1,0,L);active++;});
-$('#lUp').onclick=()=>{if(active<layers.length-1)structOp(()=>{const L=layers.splice(active,1)[0];layers.splice(active+1,0,L);active++;});};
-$('#lDown').onclick=()=>{if(active>0)structOp(()=>{const L=layers.splice(active,1)[0];layers.splice(active-1,0,L);active--;});};
-$('#lDel').onclick=()=>{if(layers.length>1)structOp(()=>{layers.splice(active,1);active=Math.max(0,active-1);});};
-$('#lClear').onclick=()=>{settleTF();const L=layers[active];copyInto(beforeC,L.canvas);L.ctx.clearRect(0,0,DOC.w,DOC.h);pushPx(L,0,0,DOC.w,DOC.h,beforeC);thumb(L);dirty();changed();toast('레이어를 비웠어요 · 두 손가락 탭으로 되돌리기');};
-$('#lMerge').onclick=()=>{settleTF();if(active===0)return;const top=layers[active],low=layers[active-1];
+// 새 레이어: 고른 것 바로 위(같은 폴더). 열린 폴더를 골랐으면 그 안 맨 위
+function addNode(N){const A=layers[active];if(isF(A)&&A.open){N.parent=A.id;layers.splice(active,0,N);}else{N.parent=A.parent??null;layers.splice(active+1,0,N);}active=layers.indexOf(N);}
+$('#lAdd').onclick=()=>structOp(()=>addNode(newLayer()));
+$('#lFolder').onclick=()=>{const A=layers[active];structOp(()=>{const F=newFolder();F.parent=A.parent??null;
+  if(isF(A)){layers.splice(active+1,0,F);}else{const i=layers.indexOf(A);layers.splice(i+1,0,F);A.parent=F.id;}active=layers.indexOf(F);});
+  toast(isF(A)?'새 폴더를 만들었어요':'고른 레이어를 새 폴더에 넣었어요 · 다른 레이어는 손잡이로 끌어 넣으세요');};
+function cloneLeaf(s,name){const L=newLayer(name);L.ctx.drawImage(s.canvas,0,0);Object.assign(L,{opacity:s.opacity,blend:s.blend,lockAlpha:s.lockAlpha,clip:s.clip,ref:s.ref,maskOn:s.maskOn});
+  if(s.mask){const c=mk(DOC.w,DOC.h);c.getContext('2d').drawImage(s.mask.canvas,0,0);L.mask={canvas:c,ctx:c.getContext('2d')};}return L;}
+$('#lDup').onclick=()=>structOp(()=>{const s=layers[active];
+  if(!isF(s)){const L=cloneLeaf(s,s.name+' 복사');L.parent=s.parent;layers.splice(active+1,0,L);active++;return;}
+  const arr=blockOf(s).sort((a,b)=>layers.indexOf(a)-layers.indexOf(b)),map=new Map();
+  const copies=arr.map(o=>{const c=isF(o)?Object.assign(newFolder(o===s?o.name+' 복사':o.name),{opacity:o.opacity,blend:o.blend,visible:o.visible,open:o.open,locked:o.locked}):cloneLeaf(o,o.name);c.visible=o.visible;map.set(o.id,c.id);return[o,c];});
+  copies.forEach(([o,c])=>{c.parent=o===s?s.parent:(map.get(o.parent)??o.parent);});
+  layers.splice(layers.indexOf(s)+1,0,...copies.map(x=>x[1]));active=layers.indexOf(copies[copies.length-1][1]);});
+$('#lUp').onclick=()=>structOp(()=>{const A=layers[active];moveStep(A,1);active=layers.indexOf(A);});
+$('#lDown').onclick=()=>structOp(()=>{const A=layers[active];moveStep(A,-1);active=layers.indexOf(A);});
+$('#lDel').onclick=()=>{const A=layers[active];const left=layers.filter(l=>!isF(l)).length-blockOf(A).filter(l=>!isF(l)).length;if(left<1){toast('레이어는 한 장 이상 있어야 해요');return;}
+  structOp(()=>{const i=layers.indexOf(A);takeBlock(A);active=clamp(i-1,0,layers.length-1);});};
+$('#lClear').onclick=()=>{settleTF();const L=editTarget();if(!L)return;copyInto(beforeC,L.canvas);L.ctx.clearRect(0,0,DOC.w,DOC.h);pushPx(L,0,0,DOC.w,DOC.h,beforeC);thumb(L);dirty();changed();toast(L.isMask?'마스크를 비웠어요 (전부 가려짐) · 두 손가락 탭으로 되돌리기':'레이어를 비웠어요 · 두 손가락 탭으로 되돌리기');};
+// 아래 레이어와 합치기: 마스크는 먼저 적용, 클리핑된 레이어는 아래 그림 안쪽에만 합침
+$('#lMerge').onclick=()=>{settleTF();const top=layers[active];if(isF(top))return;const sib=kids(top.parent??null),low=sib[sib.indexOf(top)-1];
+  if(!low||isF(low)){toast('바로 아래가 레이어일 때만 합칠 수 있어요');return;}
   if(!top.visible){toast('숨긴 레이어는 합칠 수 없어요. 눈 아이콘을 켜고 합치세요');return;}
   if(!low.visible){toast('아래 레이어가 숨겨져 있어요. 눈 아이콘을 켜고 합치세요');return;}
-  const b=snap();copyInto(beforeC,low.canvas);
-  if(top.visible){low.ctx.globalAlpha=top.opacity;low.ctx.globalCompositeOperation=top.blend;low.ctx.drawImage(top.canvas,0,0);low.ctx.globalAlpha=1;low.ctx.globalCompositeOperation='source-over';}
-  const px=pxEntry(low,0,0,DOC.w,DOC.h,beforeC);layers.splice(active,1);active--;
+  const b=snap();copyInto(beforeC,low.canvas);const ti=mk(DOC.w,DOC.h);ti.getContext('2d').drawImage(leafImg(top),0,0);
+  if(low.mask&&low.maskOn){low.ctx.globalCompositeOperation='destination-in';low.ctx.drawImage(low.mask.canvas,0,0);low.ctx.globalCompositeOperation='source-over';}
+  if(top.clip){const t=mk(DOC.w,DOC.h),tx=t.getContext('2d');tx.drawImage(low.canvas,0,0);tx.globalAlpha=top.opacity;tx.globalCompositeOperation=top.blend;tx.drawImage(ti,0,0);
+    low.ctx.globalCompositeOperation='source-atop';low.ctx.drawImage(t,0,0);low.ctx.globalCompositeOperation='source-over';}
+  else{low.ctx.globalAlpha=top.opacity;low.ctx.globalCompositeOperation=top.blend;low.ctx.drawImage(ti,0,0);low.ctx.globalAlpha=1;low.ctx.globalCompositeOperation='source-over';}
+  const px=pxEntry(low,0,0,DOC.w,DOC.h,beforeC);low.mask=null;low.editMask=false;layers.splice(layers.indexOf(top),1);active=layers.indexOf(low);
   push({t:'grp',items:[px,{t:'st',before:b,after:snap()}]});renderLayers();dirty();changed();};
-// 보이는 레이어 모두 합치기: 눈이 켜진 레이어를 보이는 그대로(불투명도·합성 모드 반영) 한 장으로. 숨긴 레이어는 그대로 남김
-$('#lMergeVis').onclick=()=>{settleTF();const vis=layers.filter(L=>L.visible);
+// 보이는 레이어 모두 합치기: 화면에 보이는 그대로(폴더·클리핑·마스크 반영) 한 장으로. 숨긴 레이어는 그대로 남김
+$('#lMergeVis').onclick=()=>{settleTF();const vis=layers.filter(l=>!isF(l)&&effVis(l));
   if(vis.length<2){toast('보이는 레이어가 2장 이상이어야 합칠 수 있어요');return;}
-  structOp(()=>{const M2=newLayer('합친 레이어');const x=M2.ctx;
-    vis.forEach(L=>{x.globalAlpha=L.opacity;x.globalCompositeOperation=L.blend;x.drawImage(L.canvas,0,0);});x.globalAlpha=1;x.globalCompositeOperation='source-over';
-    const at=layers.indexOf(vis[0]);layers=layers.filter(L=>!L.visible);layers.splice(at,0,M2);active=at;});
+  structOp(()=>{const M2=newLayer('합친 레이어');M2.ctx.drawImage(merged(),0,0);
+    const gone=new Set(layers.filter(l=>effVis(l)));const at=Math.min(...[...gone].map(l=>layers.indexOf(l)));
+    const keep=layers.filter(l=>!gone.has(l));keep.forEach(l=>{let p=l.parent!=null?byId(l.parent):null;while(p&&gone.has(p))p=p.parent!=null?byId(p.parent):null;l.parent=p?p.id:null;});
+    const before=layers.slice(0,at).filter(l=>!gone.has(l)).length;layers=keep;layers.splice(before,0,M2);active=layers.indexOf(M2);});
   toast(`보이는 레이어 ${vis.length}장을 합쳤어요 · 두 손가락 탭으로 되돌리기`);};
+// 레이어 옵션: 클리핑 · 참조 · 잠금 · 마스크
+$('#oClip').onclick=()=>{const A=layers[active];if(isF(A))return;structOp(()=>{A.clip=!A.clip;});toast(A.clip?'아래 레이어에 클리핑했어요 · 아래 그림 안쪽에만 보여요':'클리핑을 풀었어요');};
+$('#oRef').onclick=()=>{const A=layers[active];if(isF(A))return;structOp(()=>{A.ref=!A.ref;});toast(A.ref?'참조 레이어로 정했어요 · 채우기가 이 레이어 선을 기준으로 칠해요':'참조를 풀었어요');};
+$('#oLock').onclick=()=>{const A=layers[active];structOp(()=>{A.locked=!A.locked;});toast(A.locked?'잠갔어요':'잠금을 풀었어요');};
+$('#oMask').onclick=()=>{const A=layers[active];if(isF(A)||A.mask)return;settleTF();const fromSel=!!SEL;structOp(()=>{A.mask=newMask(A,fromSel);A.maskOn=true;A.editMask=true;});
+  toast(fromSel?'선택한 부분만 보이는 마스크를 만들었어요 · 지금 마스크 편집 중':'마스크를 만들었어요 · 지우개로 지우면 가려지고, 그리면 다시 보여요');};
+$('#mEdit').onclick=()=>{const A=layers[active];if(!A.mask)return;A.editMask=!A.editMask;renderLayers();toast(A.editMask?'마스크 편집 중':'그림 편집으로 돌아왔어요');};
+$('#mOn').onclick=()=>{const A=layers[active];if(!A.mask)return;structOp(()=>{A.maskOn=!A.maskOn;});};
+$('#mDel').onclick=()=>{const A=layers[active];if(!A.mask)return;structOp(()=>{A.mask=null;A.editMask=false;});toast('마스크를 삭제했어요 · 그림은 그대로예요');};
+$('#mApply').onclick=()=>{const A=layers[active];if(!A.mask)return;settleTF();const b=snap();copyInto(beforeC,A.canvas);
+  A.ctx.globalCompositeOperation='destination-in';A.ctx.drawImage(A.mask.canvas,0,0);A.ctx.globalCompositeOperation='source-over';const px=pxEntry(A,0,0,DOC.w,DOC.h,beforeC);
+  A.mask=null;A.editMask=false;push({t:'grp',items:[px,{t:'st',before:b,after:snap()}]});renderLayers();dirty();changed();toast('마스크를 적용했어요 · 가려진 부분이 지워졌어요');};
 
 /* ---------- 상단 버튼 ---------- */
 $('#bUndo').onclick=undo;$('#bRedo').onclick=redo;$('#bFit').onclick=fitView;
@@ -1457,11 +1607,13 @@ $('#nmOk').onclick=async()=>{const s=nmCheck();if(!s)return;$('#newModal').hidde
 /* 캔버스 크기 바꾸기 */
 function resizeDoc(nw,nh,{mode='canvas',ox=0,oy=0,fill=false}={}){
   settleTF();SEL=null;SELD=null;
-  const before={w:DOC.w,h:DOC.h,cs:layers.map(L=>({L,c:L.canvas}))};const after={w:nw,h:nh,cs:[]};
-  layers.forEach((L,i)=>{const c=mk(nw,nh),x=c.getContext('2d');
-    if(mode==='image'){x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';x.drawImage(L.canvas,0,0,nw,nh);}
-    else{if(fill&&i===0){x.fillStyle='#ffffff';x.fillRect(0,0,nw,nh);x.clearRect(ox,oy,DOC.w,DOC.h);}x.drawImage(L.canvas,ox,oy);}
-    after.cs.push({L,c});});
+  const leaves=layers.filter(L=>!isF(L));
+  const before={w:DOC.w,h:DOC.h,cs:leaves.map(L=>({L,c:L.canvas,m:L.mask?L.mask.canvas:null}))};const after={w:nw,h:nh,cs:[]};
+  const scale=(src,white)=>{const c=mk(nw,nh),x=c.getContext('2d');
+    if(mode==='image'){x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';x.drawImage(src,0,0,nw,nh);}
+    else{if(white){x.fillStyle='#ffffff';x.fillRect(0,0,nw,nh);x.clearRect(ox,oy,DOC.w,DOC.h);}x.drawImage(src,ox,oy);}return c;};
+  // 늘어난 부분: 맨 아래 레이어는 흰색(설정 시), 마스크는 보이게(흰색)
+  leaves.forEach(L=>{after.cs.push({L,c:scale(L.canvas,fill&&L===layers[0]),m:L.mask?scale(L.mask.canvas,true):null});});
   // 실행 취소는 순서대로만 되돌리므로 크기 바꾸기 앞뒤 기록이 각자 맞는 크기에서 적용됨
   const e={t:'rs',before,after};apply(e,false);push(e);renderLayers();dirty();changed();
 }
@@ -1518,7 +1670,11 @@ let agP=null;
 function loadAgPsd(){if(window.agPsd)return Promise.resolve();if(agP)return agP;
   agP=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/ag-psd@31.0.3/dist/bundle.js';s.onload=()=>window.agPsd?res():rej();s.onerror=()=>{agP=null;rej();};document.head.appendChild(s);});return agP;}
 const PSD_BLEND={'source-over':'normal',multiply:'multiply',screen:'screen',overlay:'overlay',darken:'darken',lighten:'lighten','color-dodge':'color dodge','color-burn':'color burn','soft-light':'soft light','hard-light':'hard light',lighter:'linear dodge',difference:'difference',hue:'hue',saturation:'saturation',color:'color',luminosity:'luminosity'};
-function buildPsd(){return{width:DOC.w,height:DOC.h,canvas:merged(),children:layers.map(L=>({name:L.name,canvas:L.canvas,top:0,left:0,opacity:L.opacity,blendMode:PSD_BLEND[L.blend]||'normal',hidden:!L.visible,transparencyProtected:L.lockAlpha}))};}
+function grayMask(L){const c=mk(DOC.w,DOC.h),x=c.getContext('2d');x.fillStyle='#000';x.fillRect(0,0,DOC.w,DOC.h);const t=mk(DOC.w,DOC.h),tx=t.getContext('2d');tx.drawImage(L.mask.canvas,0,0);tx.globalCompositeOperation='source-in';tx.fillStyle='#fff';tx.fillRect(0,0,DOC.w,DOC.h);x.drawImage(t,0,0);return c;}
+function psdNode(n){if(isF(n))return{name:n.name,opacity:n.opacity,blendMode:n.blend==='pass-through'?'pass through':(PSD_BLEND[n.blend]||'normal'),hidden:!n.visible,opened:n.open!==false,children:kids(n.id).map(psdNode)};
+  const o={name:n.name,canvas:n.canvas,top:0,left:0,opacity:n.opacity,blendMode:PSD_BLEND[n.blend]||'normal',hidden:!n.visible,transparencyProtected:n.lockAlpha,clipping:!!n.clip};
+  if(n.mask)o.mask={top:0,left:0,bottom:DOC.h,right:DOC.w,defaultColor:0,disabled:!n.maskOn,canvas:grayMask(n)};return o;}
+function buildPsd(){return{width:DOC.w,height:DOC.h,canvas:merged(),children:kids(null).map(psdNode)};}
 
 /* ---------- 작품 보관함 (이 기기 브라우저, IndexedDB) ---------- */
 function idb(){return new Promise((res,rej)=>{try{const r=indexedDB.open('butgyeol',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});}
@@ -1529,8 +1685,9 @@ async function idbDel(k){const db=await getDb();return new Promise((res,rej)=>{c
 let curId=null,curName='그림',works=[],unsaved=false,saveT=null,saving=null;const ss=$('#saveState');
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 function updTitle(){$('#workName').textContent=curName;document.title=curName+' · 붓결 드로잉';}
-function changed(){unsaved=true;ss.textContent='저장 대기 중';clearTimeout(saveT);saveT=setTimeout(saveNow,1800);}
-function memRecord(){return{w:DOC.w,h:DOC.h,active,nameSeq,layers:layers.map(L=>({name:L.name,opacity:L.opacity,blend:L.blend,visible:L.visible,lockAlpha:L.lockAlpha,canvas:L.canvas}))};}
+function changed(){editVer++;unsaved=true;ss.textContent='저장 대기 중';clearTimeout(saveT);saveT=setTimeout(saveNow,1800);}
+function memRecord(){return{w:DOC.w,h:DOC.h,active,nameSeq,v:2,layers:layers.map(L=>({type:L.type||'layer',name:L.name,opacity:L.opacity,blend:L.blend,visible:L.visible,lockAlpha:!!L.lockAlpha,
+  pi:L.parent!=null?layers.indexOf(byId(L.parent)):-1,clip:!!L.clip,ref:!!L.ref,locked:!!L.locked,open:L.open!==false,maskOn:L.maskOn!==false,canvas:L.canvas||null,mcanvas:L.mask?L.mask.canvas:null}))};}
 const toBlob=(c,t='image/png',q)=>new Promise(r=>c.toBlob(r,t,q));
 async function makeThumb(){const m=merged();const k=360/Math.max(DOC.w,DOC.h);const c=mk(Math.max(1,Math.round(DOC.w*k)),Math.max(1,Math.round(DOC.h*k)));const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(m,0,0,c.width,c.height);return toBlob(c,'image/jpeg',.85);}
 async function saveNow(){
@@ -1538,7 +1695,7 @@ async function saveNow(){
   if(S||TF||drawId!==null){clearTimeout(saveT);saveT=setTimeout(saveNow,900);return;}
   if(!curId)return;
   saving=(async()=>{ss.textContent='저장 중…';unsaved=false;
-    try{const rec=memRecord();for(const l of rec.layers){l.blob=await toBlob(l.canvas);delete l.canvas;}rec.t=Date.now();
+    try{const rec=memRecord();for(const l of rec.layers){if(l.canvas)l.blob=await toBlob(l.canvas);if(l.mcanvas)l.mblob=await toBlob(l.mcanvas);delete l.canvas;delete l.mcanvas;}rec.t=Date.now();
       await idbSet('work:'+curId,rec);const th=await makeThumb();
       const i=works.findIndex(w=>w.id===curId);const prev=i>=0?works[i]:{created:rec.t};const e={...prev,id:curId,name:curName,w:DOC.w,h:DOC.h,updated:rec.t,thumb:th};if(i>=0)works[i]=e;else works.unshift(e);askPersist();
       await idbSet('index',works);await idbSet('current',curId);ss.textContent='자동 저장됨';}
@@ -1549,9 +1706,15 @@ async function saveNow(){
 async function flushSave(){clearTimeout(saveT);if(saving)await saving;if(unsaved&&curId)await saveNow();}
 async function buildFromRecord(rec){
   initDoc(rec.w,rec.h,true);
-  for(const m of rec.layers){const L=newLayer(m.name);Object.assign(L,{opacity:m.opacity,blend:m.blend,visible:m.visible,lockAlpha:!!m.lockAlpha});
-    const src=m.blob||m.png;if(src){let bmp;if(src instanceof Blob)bmp=await createImageBitmap(src);else{const im=new Image();im.src=src;await im.decode();bmp=im;}L.ctx.drawImage(bmp,0,0);}layers.push(L);}
-  if(!layers.length)layers.push(newLayer());
+  const img=async src=>{if(src instanceof Blob)return createImageBitmap(src);const im=new Image();im.src=src;await im.decode();return im;};
+  for(const m of rec.layers){
+    if(m.type==='folder'){const F=newFolder(m.name);Object.assign(F,{opacity:m.opacity,blend:m.blend||'pass-through',visible:m.visible,open:m.open!==false,locked:!!m.locked});layers.push(F);continue;}
+    const L=newLayer(m.name);Object.assign(L,{opacity:m.opacity,blend:m.blend,visible:m.visible,lockAlpha:!!m.lockAlpha,clip:!!m.clip,ref:!!m.ref,locked:!!m.locked,maskOn:m.maskOn!==false});
+    const src=m.blob||m.png;if(src)L.ctx.drawImage(await img(src),0,0);
+    const ms=m.mblob||m.mpng;if(ms){const c=mk(DOC.w,DOC.h);c.getContext('2d').drawImage(await img(ms),0,0);L.mask={canvas:c,ctx:c.getContext('2d')};}
+    layers.push(L);}
+  rec.layers.forEach((m,i)=>{if(m.pi!=null&&m.pi>=0&&layers[m.pi]&&isF(layers[m.pi]))layers[i].parent=layers[m.pi].id;});
+  if(!layers.some(l=>!isF(l)))layers.push(newLayer());
   nameSeq=rec.nameSeq||layers.length;active=clamp(rec.active|0,0,layers.length-1);
 }
 async function loadWork(id){
@@ -1597,8 +1760,10 @@ async function workAction(a,w){
     renderGallery();toast('삭제했어요');}
 }
 const blobToDataURL=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(b);});
-async function recWithData(rec){const out={app:'butgyeol',v:1,w:rec.w,h:rec.h,active:rec.active,nameSeq:rec.nameSeq,layers:[]};
-  for(const l of rec.layers){const blob=l.blob||await toBlob(l.canvas);out.layers.push({name:l.name,opacity:l.opacity,blend:l.blend,visible:l.visible,lockAlpha:l.lockAlpha,png:await blobToDataURL(blob)});}return out;}
+async function recWithData(rec){const out={app:'butgyeol',v:2,w:rec.w,h:rec.h,active:rec.active,nameSeq:rec.nameSeq,layers:[]};
+  for(const l of rec.layers){const o={type:l.type||'layer',name:l.name,opacity:l.opacity,blend:l.blend,visible:l.visible,lockAlpha:l.lockAlpha,pi:l.pi??-1,clip:!!l.clip,ref:!!l.ref,locked:!!l.locked,open:l.open!==false,maskOn:l.maskOn!==false};
+    if(o.type!=='folder'){const blob=l.blob||(l.canvas?await toBlob(l.canvas):null);if(blob)o.png=await blobToDataURL(blob);const mb=l.mblob||(l.mcanvas?await toBlob(l.mcanvas):null);if(mb)o.mpng=await blobToDataURL(mb);}
+    out.layers.push(o);}return out;}
 async function exportWorkFile(obj,name){obj.name=name;if(await saveFile(`${safeName(name)}.json`,JSON.stringify(obj)))markBackup();}
 function markBackup(){const w=works.find(x=>x.id===curId);if(!w)return;w.backup=Date.now();idbSet('index',works).catch(()=>{});}
 /* 저장 공간 보호: 브라우저가 공간이 부족할 때 이 사이트 데이터를 지우지 않게 요청 */
