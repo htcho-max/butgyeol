@@ -26,6 +26,11 @@ button,select,input{font:inherit;color:inherit}
 #app{height:100%;display:flex;flex-direction:column;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:6px;gap:6px;box-sizing:border-box}
 #top{display:flex;align-items:center;gap:6px;min-height:44px;overflow-x:auto;scrollbar-width:none;flex:none}
 #top::-webkit-scrollbar{display:none}
+#moreList{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+#moreList .ib{width:auto;height:auto;min-height:44px;display:flex;align-items:center;justify-content:flex-start;gap:8px;padding:6px 10px;border-radius:8px;text-align:left}
+#moreList .ib::after{content:attr(data-lbl);font-size:13px}
+@media (max-width:900px){#saveState{display:none}}
+@media (max-width:620px){#bExport .tl{display:none}.brand{display:none}}
 .brand{font-family:var(--f-brand);font-size:22px;letter-spacing:.02em;white-space:nowrap}
 #workName{max-width:180px;height:36px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--raised);cursor:pointer;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:none}
 #workName:hover{background:var(--accent-soft)}
@@ -314,6 +319,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
       <button class="ib" id="bSize" title="캔버스 크기" data-i="resize"></button>
       <button class="ib" id="bNew" title="새 작품" data-i="newfile"></button>
       <button class="ib" id="bGallery" title="작품 보관함" data-i="grid"></button>
+      <button class="ib" id="bMore" title="더 보기 · 화면이 좁아서 숨긴 버튼" data-i="more" hidden></button>
     </div>
     <button class="txtbtn line" id="bInstall" hidden><span data-i="install"></span><span class="tl">앱 설치</span></button>
     <div class="grp" id="sideBtns">
@@ -529,6 +535,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
       <input type="file" id="brushFile" accept=".json,application/json" hidden>
     </div>
 
+    <div class="pop" id="morePop" hidden style="right:8px;top:52px;width:min(300px,calc(100vw - 16px))"><h3>더 보기</h3><div id="moreList"></div></div>
     <div class="pop" id="expPop" hidden>
       <button class="mitem" id="xPng"><b>PNG 이미지</b><span>레이어를 합친 그림 한 장</span></button>
       <button class="mitem" id="xPsd"><b>PSD 파일</b><span>레이어 그대로 · 클립 스튜디오, 포토샵에서 열기</span></button>
@@ -676,7 +683,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 <script>
 (()=>{
 "use strict";
-const VERSION='v2.6';
+const VERSION='v2.6.1';
 const $=s=>document.querySelector(s);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const IN_ARTIFACT=!!window.claude;
@@ -745,6 +752,7 @@ const IC={
  vector:"M4 20l3.5-1L19 7.5 16.5 5 5 16.5zM14.5 7l2.5 2.5M3 3h4v4H3z",
  comic:"M3 4h8v7H3zM13 4h8v4h-8zM13 10h8v10h-8zM3 13h8v7H3z",
  film:"M4 4h16v16H4zM4 9h16M4 15h16M8 4v5M16 4v5M8 15v5M16 15v5",
+ more:"M5 12h.01M12 12h.01M19 12h.01M5 11.2a.8.8 0 1 0 0 1.6.8.8 0 0 0 0-1.6zM12 11.2a.8.8 0 1 0 0 1.6.8.8 0 0 0 0-1.6zM19 11.2a.8.8 0 1 0 0 1.6.8.8 0 0 0 0-1.6z",
  resize:"M4 9V4h5M4 4l6 6M20 15v5h-5M20 20l-6-6M14 4h6v6M10 20H4v-6"
 };
 const svg=n=>`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[n]}"/></svg>`;
@@ -839,6 +847,10 @@ function editTarget(quiet){const L=layers[active];if(!L)return null;const say=t=
 function allocBuffers(){POOL.clear();strokeBuf=mk(DOC.w,DOC.h);sctx=strokeBuf.getContext('2d');beforeC=mk(DOC.w,DOC.h);bctx=beforeC.getContext('2d');work=mk(DOC.w,DOC.h);wctx=work.getContext('2d');cbuf=mk(DOC.w,DOC.h);cctx=cbuf.getContext('2d');}
 function initDoc(w,h,blank){
   if(ANIM)animClose();
+  TXT=null;GEN=null;VE=null;FRS=null;VECOP=null;GENOP=null;
+  ['textPop','fxPop','framePop','efxPop','balBar','frameBar','vecBar','histPop','comicPop','rulPop','mixPop','selPop'].forEach(id=>{const el=document.getElementById(id);if(el)el.hidden=true;});
+  if(ADJ){ADJ=null;const ap=document.getElementById('adjPop');if(ap)ap.hidden=true;document.body.classList.remove('adjOn');}
+  if(GED){GED=false;document.body.classList.remove('gedOn');const gb=document.getElementById('gedBar');if(gb)gb.hidden=true;}
   DOC={w,h};layers=[];nameSeq=1;folderSeq=1;SEL=null;SELD=null;TF=null;editVer++;
   if(!blank){const bg=newLayer('배경');bg.ctx.fillStyle='#ffffff';bg.ctx.fillRect(0,0,w,h);layers.push(bg);layers.push(newLayer());active=1;}
   allocBuffers();hist=[];redoS=[];updHist();updBars();
@@ -1252,7 +1264,11 @@ function cancelStroke(){if(S){clearTimeout(S.holdT);if(S.smudge){const L=S.T;if(
 /* ---------- 기록 (실행 취소) ---------- */
 let hist=[],redoS=[];const HMAX=60,HBYTES=300*1048576;
 function regionCopy(src,x,y,w,h){const c=mk(w,h);c.getContext('2d').drawImage(src,x,y,w,h,0,0,w,h);return c;}
-function pxEntry(L,x,y,w,h,beforeSrc){return{t:'px',L,x,y,w,h,before:regionCopy(beforeSrc,x,y,w,h),after:regionCopy(L.canvas,x,y,w,h)};}
+// 큰 영역 기록은 실제로 바뀐 사각형만 남겨 메모리를 아낌 (글자·말풍선·변형·벡터처럼 문서 전체를 넘기는 작업)
+function diffBox(a,b,x,y,w,h){try{const A=a.getContext('2d',{willReadFrequently:true}).getImageData(x,y,w,h).data,B=b.getContext('2d',{willReadFrequently:true}).getImageData(x,y,w,h).data,W32=new Uint32Array(A.buffer),V32=new Uint32Array(B.buffer);
+  let x0=w,y0=h,x1=-1,y1=-1;for(let j=0;j<h;j++){const r=j*w;let f=-1,l=-1;for(let i=0;i<w;i++)if(W32[r+i]!==V32[r+i]){f=i;break;}if(f<0)continue;for(let i=w-1;i>=f;i--)if(W32[r+i]!==V32[r+i]){l=i;break;}if(f<x0)x0=f;if(l>x1)x1=l;if(j<y0)y0=j;y1=j;}
+  return x1<0?[x,y,1,1]:[x+x0,y+y0,x1-x0+1,y1-y0+1];}catch(e){return[x,y,w,h];}}
+function pxEntry(L,x,y,w,h,beforeSrc){if(w*h>DOC.w*DOC.h*.2&&beforeSrc.width===L.canvas.width){[x,y,w,h]=diffBox(beforeSrc,L.canvas,x,y,w,h);}return{t:'px',L,x,y,w,h,before:regionCopy(beforeSrc,x,y,w,h),after:regionCopy(L.canvas,x,y,w,h)};}
 function pushPx(L,x,y,w,h,beforeSrc){push(pxEntry(L,x,y,w,h,beforeSrc));}
 // 실행 취소 기록이 메모리를 너무 많이 쓰지 않게 단계 수(60)와 용량(300MB) 둘 다로 제한
 function entryBytes(e){if(e.sz!=null)return e.sz;let n=0;if(e.t==='px')n=e.w*e.h*8;else if(e.t==='rs')n=[...e.before.cs,...e.after.cs].reduce((a,o)=>a+o.c.width*o.c.height*4,0);else if(e.t==='grp')n=e.items.reduce((a,x)=>a+entryBytes(x),0);return e.sz=n;}
@@ -1600,6 +1616,19 @@ $('#txVert').onclick=()=>{if(!TXT)return;$('#txVert').classList.toggle('on');txS
 $('#txAlign').querySelectorAll('button').forEach(b=>b.onclick=()=>{$('#txAlign').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));txSet({align:b.dataset.al});});
 $('#txOk').onclick=finishText;$('#txCancel').onclick=cancelText;
 $('#txFx').onclick=()=>{if(!TXT)return;const L=TXT.L;L.fx=L.fx&&L.fx.on?{...L.fx,on:false}:{on:true,size:Math.max(2,Math.round(TXT.L.text.size/12)),color:(L.fx&&L.fx.color)||'#ffffff'};L.fxK=null;$('#txFx').classList.toggle('on',L.fx.on);renderLayers();dirty();};
+
+/* ---------- 좁은 화면: 위쪽 막대가 넘치면 덜 쓰는 버튼을 '더 보기'로 ---------- */
+const MORE_ORDER=['bImport','bSize','bNew','bAnim','bComic','bRuler','bFlt','bAdj','bSet','bFlip','bRot','bHist','bGallery','bFit'];const morePop=$('#morePop');
+const HOMES=[...new Set(MORE_ORDER.map(id=>$('#'+id).parentElement))].map(el=>({el,ids:[...el.children].map(c=>c.id)}));
+function fitTop(){const top=$('#top'),ml=$('#moreList');HOMES.forEach(h=>h.ids.forEach(id=>{const b=$('#'+id);if(b)h.el.appendChild(b);}));
+  $('#bMore').hidden=true;let moved=0;
+  for(const id of MORE_ORDER){if(top.scrollWidth<=top.clientWidth+1)break;if(!moved){$('#bMore').hidden=false;}const b=$('#'+id);b.dataset.lbl=(b.title||'').split(' · ')[0];ml.appendChild(b);moved++;}
+  HOMES.forEach(h=>{h.el.style.display=[...h.el.children].some(c=>!c.hidden)?'':'none';});
+  if(!moved)morePop.hidden=true;}
+new ResizeObserver(()=>fitTop()).observe($('#top'));
+$('#bMore').onclick=e=>{e.stopPropagation();morePop.hidden=!morePop.hidden;};
+morePop.addEventListener('click',e=>{if(e.target.closest('.ib'))setTimeout(()=>{morePop.hidden=true;},0);},true);
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('#morePop,#bMore'))morePop.hidden=true;});
 
 /* ---------- 공유 (Web Share): 다른 기기로 작품 파일 보내기 ---------- */
 async function shareFile(name,blob,type){try{const f=new File([blob],name,{type});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:curName});return true;}}catch(err){if(err&&err.name==='AbortError')return true;}

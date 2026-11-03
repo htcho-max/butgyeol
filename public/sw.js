@@ -1,5 +1,5 @@
 // 붓결 드로잉 서비스 워커: 화면은 네트워크 우선(새 버전 바로 반영), 나머지는 캐시 우선 → 인터넷 없이도 열림
-const CACHE='butgyeol-v2.6';
+const CACHE='butgyeol-v2.6.1';
 const CORE=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k.startsWith('butgyeol-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
