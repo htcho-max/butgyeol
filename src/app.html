@@ -59,6 +59,13 @@ button,select,input{font:inherit;color:inherit}
 .vs .lbl{position:absolute;top:-2px;left:0;right:0;text-align:center;font-size:10px;color:var(--muted)}
 /* 둥근 모서리 + overflow:hidden 으로 캔버스를 자르면 안드로이드 크롬에서 다시 그릴 때 깜빡여서 쓰지 않음 */
 #stage{flex:1;min-width:0;position:relative;background:var(--stage);touch-action:none;contain:strict}
+#nav{position:absolute;left:10px;bottom:10px;z-index:6;background:var(--raised);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 18px rgba(0,0,0,.16);padding:4px;display:flex;flex-direction:column;gap:4px;touch-action:none;user-select:none}
+#nav[hidden]{display:none}
+#nav .navh{display:flex;align-items:center;gap:2px;font-size:12px;padding:0 2px 0 6px;font-variant-numeric:tabular-nums}
+#nav .nb{height:26px;min-width:26px;padding:0 6px;border:0;border-radius:6px;background:transparent;cursor:pointer;font-size:13px}
+#nav .nb:hover{background:var(--accent-soft)}
+#navC{display:block;border-radius:6px;cursor:pointer}
+#nav.min #navC{display:none}
 #view{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
 #badge{position:absolute;left:50%;top:62px;transform:translateX(-50%);background:var(--raised);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:12px;font-variant-numeric:tabular-nums;opacity:0;transition:opacity .25s;pointer-events:none}
 #badge.show{opacity:1}
@@ -373,6 +380,11 @@ input[type=range]{accent-color:var(--accent);width:100%}
       </div>
       <div id="qmenu" hidden></div>
       <div id="badge"></div>
+      <div id="nav" hidden>
+        <div class="navh"><b id="navZ">100%</b><span style="flex:1"></span>
+          <button class="nb" id="navOut" title="축소">−</button><button class="nb" id="navIn" title="확대">+</button><button class="nb" id="navFit" title="화면에 맞추기">맞춤</button><button class="nb" id="navMinB" title="내비게이터 접기·펴기">▾</button></div>
+        <canvas id="navC"></canvas>
+      </div>
       <div id="toast" role="status"></div>
     </div>
 
@@ -449,6 +461,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
         <select id="penBtn"><option value="toggle">브러시↔지우개 바꾸기 (버튼 누르고 톡)</option><option value="eraser">누르는 동안 지우개로 그리기</option><option value="picker">그 자리 색 뽑기</option><option value="pan">화면 이동</option><option value="prev">직전 도구로 바꾸기</option><option value="undo">실행 취소</option></select></div>
       <label class="chk"><input type="checkbox" id="qmenuOn"> 펜을 띄운 채 버튼을 누르면 빠른 메뉴</label>
       <label class="chk"><input type="checkbox" id="predict"> 펜 예측선 <span style="color:var(--muted);font-size:12px">(펜이 갈 곳을 미리 그려 지연을 줄여요. 두께가 실제 선과 조금 달라요)</span></label>
+      <div class="field"><label for="navMode">내비게이터 <span class="hint">(전체 그림과 지금 보는 곳을 보여 주는 작은 창)</span></label><select id="navMode"><option value="auto">확대했을 때만 보이기</option><option value="on">항상 보이기</option><option value="off">숨기기</option></select></div>
       <label class="chk"><input type="checkbox" id="qshape"> 도형 자동 보정 <span style="color:var(--muted);font-size:12px">(긋고 끝에서 펜을 잠깐 멈추면 직선·원·사각형)</span></label>
       <label class="chk"><input type="checkbox" id="finger"> 손가락으로도 그리기</label>
       <label class="chk"><input type="checkbox" id="fillAll" checked> 채우기: 모든 레이어의 선 기준</label>
@@ -554,7 +567,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 <script>
 (()=>{
 "use strict";
-const VERSION='v2.3';
+const VERSION='v2.3.1';
 const $=s=>document.querySelector(s);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const IN_ARTIFACT=!!window.claude;
@@ -673,7 +686,7 @@ const isDirect=b=>b&&(b.mode==='smudge'||b.mode==='mix'||b.mode==='blur');
 const brushIcon=k=>svg((BR[k]&&IC[BR[k].icon])?BR[k].icon:'pen');
 let tool='pen', lastBrush='pen';
 const ST={stab:3,curve:1,finger:!matchMedia('(pointer: coarse)').matches,fingerSet:false,penSeen:false,fillAll:true,tol:40,selMode:'rect',favs:['pen','pencil','water','air'],bcat:'',qshape:true,stabMode:'smooth',penBtn:'toggle',qmenu:true,pLo:0,pHi:0,tiltSeen:false,predict:false,selOp:'new',wandRef:'all',wandTol:32,wandCont:true,selAmt:6,gradType:'linear',gradCol:'fade',backCol:'#ffffff',
-  sym:{mode:'off',n:6,mirror:false,fx:.5,fy:.5},rul:{type:'off',a:[.25,.5],b:[.75,.5],vp:[[.5,.4],[.05,.4],[.95,.4],[.5,.97]]},rulSnap:true,grid:{on:false,size:100},guides:true,swatches:[],mixSz:28,mixMode:'paint'};
+  sym:{mode:'off',n:6,mirror:false,fx:.5,fy:.5},rul:{type:'off',a:[.25,.5],b:[.75,.5],vp:[[.5,.4],[.05,.4],[.95,.4],[.5,.97]]},rulSnap:true,grid:{on:false,size:100},guides:true,nav:'auto',navMin:false,swatches:[],mixSz:28,mixMode:'paint'};
 let color={h:220,s:.15,v:.16};
 let recent=['#1c2029','#ffffff','#e34b3f','#f2a33a','#f5d547','#3fae6a','#2a5bd7','#8a4fd8'];
 try{const s=JSON.parse(localStorage.getItem('bg-settings')||'null'); if(s){Object.assign(ST,s.ST||{}); if(s.recent)recent=s.recent;
@@ -844,6 +857,7 @@ function render(){
     vctx.beginPath();vctx.arc(hover.x,hover.y,r,0,7);vctx.lineWidth=2.5;vctx.strokeStyle='rgba(255,255,255,.8)';vctx.stroke();
     vctx.lineWidth=1;vctx.strokeStyle='rgba(0,0,0,.75)';vctx.stroke();
   }
+  drawNav();
 }
 
 /* ---------- 색 ---------- */
@@ -1351,6 +1365,35 @@ $('#adjCancel').onclick=adjCancel;
 $('#adjReset').onclick=()=>{if(!ADJ)return;ADJ.v[ADJ.tab]=JSON.parse(JSON.stringify(ADJDEF[ADJ.tab]));adjTab(ADJ.tab);};
 $('#adjOk').onclick=()=>{if(!ADJ)return;if(ADJ.raf){cancelAnimationFrame(ADJ.raf);ADJ.raf=0;adjRender();}const{T,bb}=ADJ;pushPx(T,bb[0],bb[1],bb[2],bb[3],beforeC);adjClose();thumb(T);dirty();changed();toast('색 보정을 적용했어요');};
 $('#bAdj').onclick=()=>{if(ADJ){adjCancel();return;}openAdj();};
+
+/* ---------- 내비게이터: 전체 그림 축소판 + 지금 보는 곳(사각형). 눌러서·끌어서 옮기기 ---------- */
+const navEl=$('#nav'),navC=$('#navC');let navThumb=null,navVer=-1,navT=0,navK=1,navW=200,navH=125;
+function navLayout(){const mw=Math.min(220,Math.max(120,SW*.22)),mh=150;navK=Math.min(mw/DOC.w,mh/DOC.h);navW=Math.max(40,Math.round(DOC.w*navK));navH=Math.max(30,Math.round(DOC.h*navK));
+  const d=Math.min(window.devicePixelRatio||1,2);if(navC.width!==Math.round(navW*d)||navC.height!==Math.round(navH*d)){navC.width=Math.round(navW*d);navC.height=Math.round(navH*d);navC.style.width=navW+'px';navC.style.height=navH+'px';navThumb=null;}}
+function navBuild(){navT=0;if(navEl.hidden)return;navLayout();const c=navThumb&&navThumb.width===navC.width&&navThumb.height===navC.height?navThumb:mk(navC.width,navC.height),x=c.getContext('2d');
+  x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,c.width,c.height);x.fillStyle='#e9ebef';x.fillRect(0,0,c.width,c.height);x.imageSmoothingQuality='high';x.drawImage(mergedCached(),0,0,c.width,c.height);navThumb=c;navVer=editVer;dirty();}
+function navVisible(){if(ST.nav==='off')return false;if(ST.nav==='on')return true;
+  // 자동: 그림 전체가 화면 안에 다 들어오지 않을 때만
+  for(const q of[[0,0],[DOC.w,0],[DOC.w,DOC.h],[0,DOC.h]]){const p=toScr({x:q[0],y:q[1]});if(p.x<-1||p.y<-1||p.x>SW+1||p.y>SH+1)return true;}return false;}
+function drawNav(){
+  const vis=navVisible();if(navEl.hidden===vis)navEl.hidden=!vis;if(!vis)return;
+  navEl.classList.toggle('min',!!ST.navMin);$('#navZ').textContent=Math.round(V.s*100)+'%';
+  if(ST.navMin)return;navLayout();
+  if(!navThumb||navVer!==editVer){if(!navThumb)navBuild();else if(!navT)navT=setTimeout(navBuild,350);}
+  const x=navC.getContext('2d'),d=navC.width/navW;x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,navC.width,navC.height);if(navThumb)x.drawImage(navThumb,0,0);
+  const k=navK*d,pts=[[0,0],[SW,0],[SW,SH],[0,SH]].map(([a,b])=>{const q=toDoc(a,b);return[q.x*k,q.y*k];});
+  x.beginPath();x.rect(0,0,navC.width,navC.height);x.moveTo(pts[0][0],pts[0][1]);for(let i=3;i>=0;i--)x.lineTo(pts[i][0],pts[i][1]);x.closePath();x.fillStyle='rgba(20,24,32,.35)';x.fill('evenodd');
+  x.beginPath();pts.forEach((q,i)=>i?x.lineTo(q[0],q[1]):x.moveTo(q[0],q[1]));x.closePath();x.lineWidth=2*d;x.strokeStyle='#2a5bd7';x.stroke();}
+navEl.addEventListener('pointerdown',e=>e.stopPropagation());
+let navDrag=null;
+const navGo=e=>{const r=navC.getBoundingClientRect(),dx=(e.clientX-r.left)/navK,dy=(e.clientY-r.top)/navK;centerOn({x:clamp(dx,0,DOC.w),y:clamp(dy,0,DOC.h)},{x:SW/2,y:SH/2});dirty();};
+navC.addEventListener('pointerdown',e=>{e.preventDefault();navC.setPointerCapture(e.pointerId);navDrag=true;navGo(e);});
+navC.addEventListener('pointermove',e=>{if(navDrag)navGo(e);});
+const navUp=()=>{navDrag=null;};navC.addEventListener('pointerup',navUp);navC.addEventListener('pointercancel',navUp);
+const navZoom=k=>{const c=toDoc(SW/2,SH/2);V.s=clamp(V.s*k,.05,40);centerOn(c,{x:SW/2,y:SH/2});dirty();};
+$('#navIn').onclick=()=>navZoom(1.25);$('#navOut').onclick=()=>navZoom(.8);$('#navFit').onclick=()=>fitView();
+$('#navMinB').onclick=()=>{ST.navMin=!ST.navMin;$('#navMinB').textContent=ST.navMin?'▴':'▾';saveSettings();dirty();};$('#navMinB').textContent=ST.navMin?'▴':'▾';
+$('#navMode').onchange=e=>{ST.nav=e.target.value;saveSettings();dirty();};
 
 /* ---------- 자 · 대칭 · 격자 ---------- */
 // 위치는 문서 크기에 대한 비율(0~1)로 저장 → 캔버스 크기를 바꿔도 같은 자리
@@ -1937,7 +1980,7 @@ $('#bExport').onclick=e=>{e.stopPropagation();if(!expPop.hidden){expPop.hidden=t
 [setPop,expPop,brushPop].forEach(p=>p.addEventListener('pointerdown',e=>e.stopPropagation()));
 function closePops(){setPop.hidden=true;expPop.hidden=true;brushPop.hidden=true;if(!wide.matches)side.classList.remove('open');}
 document.addEventListener('pointerdown',e=>{if(!e.target.closest('.pop,#bSet,#bExport,#tBrush,[data-tool],.scrim,#sOpt,#bRuler,#bMix,#colorCard'))[setPop,expPop,brushPop,selPop,rulPop,mixPop].forEach(p=>p.hidden=true);});
-function syncSettings(){$('#predict').checked=ST.predict;$('#qshape').checked=ST.qshape;$('#stab').value=ST.stab;$('#stabV').textContent=ST.stab;$('#stabMode').value=ST.stabMode;$('#penBtn').value=ST.penBtn;$('#qmenuOn').checked=ST.qmenu;$('#finger').checked=ST.finger;$('#fillAll').checked=ST.fillAll;$('#tol').value=ST.tol;$('#tolV').textContent=ST.tol;}
+function syncSettings(){$('#navMode').value=ST.nav||'auto';$('#predict').checked=ST.predict;$('#qshape').checked=ST.qshape;$('#stab').value=ST.stab;$('#stabV').textContent=ST.stab;$('#stabMode').value=ST.stabMode;$('#penBtn').value=ST.penBtn;$('#qmenuOn').checked=ST.qmenu;$('#finger').checked=ST.finger;$('#fillAll').checked=ST.fillAll;$('#tol').value=ST.tol;$('#tolV').textContent=ST.tol;}
 $('#stab').oninput=e=>{ST.stab=+e.target.value;syncSettings();saveSettings();};
 $('#stabMode').onchange=e=>{ST.stabMode=e.target.value;saveSettings();};
 $('#penBtn').onchange=e=>{ST.penBtn=e.target.value;saveSettings();};
