@@ -129,7 +129,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 .bitem b{font-weight:500;font-size:13px;width:64px;flex:none}
 .bitem canvas{flex:1;min-width:0;height:40px;width:100%}
 #brushEd{display:flex;flex-direction:column;gap:9px;border-top:1px solid var(--line);padding-top:10px}
-.erow{display:grid;grid-template-columns:96px 1fr 38px;align-items:center;gap:8px;font-size:12px}
+.erow{display:grid;grid-template-columns:112px 1fr 38px;align-items:center;gap:8px;font-size:12px}
 .erow span:last-child{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
 #expPop{right:0;top:0;width:min(280px,calc(100vw - 32px));gap:6px}
 .mitem{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;border:0;border-radius:10px;background:transparent;cursor:pointer;text-align:left}
@@ -137,7 +137,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 .mitem b{font-weight:500;font-size:14px}
 .mitem span{font-size:12px;color:var(--muted)}
 .scrim{position:fixed;inset:0;background:rgba(10,12,16,.45);z-index:30;display:grid;place-items:center;padding:16px}
-#newModal,#askModal,#expModal,#sizeModal{z-index:40}
+#newModal,#askModal,#expModal,#sizeModal,#penModal{z-index:40}
 .sizerow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
 .sizerow label{display:flex;align-items:center;gap:6px}
 .sizerow input{width:84px;height:38px;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:0 10px;font-variant-numeric:tabular-nums;-webkit-user-select:text;user-select:text}
@@ -191,6 +191,25 @@ input[type=range]{accent-color:var(--accent);width:100%}
 .wmenu button.del{color:var(--danger)}
 .gempty{grid-column:1/-1;font-size:13px;color:var(--muted)}
 /* 말풍선: 브라우저 기본 title 대신 앱이 직접 띄움 (S펜 호버에서 깜빡이지 않게) */
+#penModal .modal{width:min(780px,100%)}
+.pgrid{display:grid;grid-template-columns:1.1fr 1fr;gap:16px}
+@media (max-width:680px){.pgrid{grid-template-columns:1fr}}
+.pcol{display:flex;flex-direction:column;gap:10px;min-width:0}
+#padC{width:100%;height:230px;border:1px solid var(--line);border-radius:10px;background:#fff;touch-action:none;display:block}
+.pvals{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12px;font-variant-numeric:tabular-nums}
+.pvals span:nth-child(odd){color:var(--muted)}
+.pstat{font-size:12px;line-height:1.5;display:flex;flex-direction:column;gap:3px}
+.pstat .ok{color:#2f8f57}.pstat .no{color:var(--muted)}
+.psec{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:12px;padding:10px}
+.psec b{font-size:13px;font-weight:600}
+.psec p{font-size:12px!important;margin:0}
+.mbtns.left{justify-content:flex-start}
+#curveC{width:180px;height:180px;border:1px solid var(--line);border-radius:10px;background:var(--panel);touch-action:none;align-self:flex-start;max-width:100%}
+#qmenu{position:absolute;z-index:8;width:220px;height:220px;margin:-110px 0 0 -110px;border-radius:50%;background:color-mix(in srgb,var(--raised) 92%,transparent);border:1px solid var(--line);box-shadow:0 12px 30px rgba(0,0,0,.25);touch-action:none}
+#qmenu button{position:absolute;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;border:2px solid var(--raised);box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0;display:grid;place-items:center;background:var(--panel)}
+#qmenu button svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#qmenu button.on{box-shadow:0 0 0 2px var(--accent)}
+#qmenu .qc{width:34px;height:34px;margin:-17px 0 0 -17px;font-size:16px;background:var(--raised)}
 #tip{position:fixed;z-index:60;left:0;top:0;max-width:min(280px,calc(100vw - 24px));background:#1c2029;color:#f3f4f7;border-radius:10px;padding:8px 11px;font-size:13px;line-height:1.45;box-shadow:0 8px 22px rgba(0,0,0,.25);pointer-events:none;opacity:0;transform:translateY(2px);transition:opacity .12s,transform .12s}
 #tip.show{opacity:1;transform:none}
 #tip b{display:block;font-weight:600}
@@ -268,6 +287,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
         <button class="fb" id="tfCancel">취소</button>
         <button class="fb primary" id="tfOk">확인</button>
       </div>
+      <div id="qmenu" hidden></div>
       <div id="badge"></div>
       <div id="toast" role="status"></div>
     </div>
@@ -320,8 +340,13 @@ input[type=range]{accent-color:var(--accent);width:100%}
     <div class="pop" id="setPop" hidden>
       <h3>그리기 설정 <span style="font-weight:400;font-size:11px;color:var(--muted)" id="verTag"></span></h3>
       <div class="field"><label for="stab">손떨림 보정 <b id="stabV"></b></label><input type="range" id="stab" min="0" max="10" value="3"><span class="hint">높을수록 선이 매끄럽지만 펜을 살짝 늦게 따라와요</span></div>
-      <div class="field"><label for="curve">필압 느낌</label>
-        <select id="curve"><option value="0.65">부드럽게 (약하게 눌러도 굵게)</option><option value="1" selected>보통</option><option value="1.6">단단하게 (세게 눌러야 굵게)</option></select></div>
+      <div class="field"><label for="stabMode">보정 방식</label>
+        <select id="stabMode"><option value="smooth">부드럽게 따라오기</option><option value="rope">끈으로 끌기 (깔끔한 펜 선)</option></select>
+        <span class="hint">끈으로 끌기: 펜과 붓 끝 사이에 끈이 있어 펜이 끈 길이만큼 멀어져야 선이 그려져요</span></div>
+      <button class="txtbtn line" id="bPen" style="justify-content:center">펜 설정 열기 · 필압 맞추기 · 기울기 확인</button>
+      <div class="field"><label for="penBtn">S펜 버튼을 누른 채 화면에 대면</label>
+        <select id="penBtn"><option value="eraser">지우개로 그리기</option><option value="picker">그 자리 색 뽑기</option><option value="pan">화면 이동</option><option value="prev">직전 도구로 바꾸기</option><option value="undo">실행 취소</option></select></div>
+      <label class="chk"><input type="checkbox" id="qmenuOn"> 펜을 띄운 채 버튼을 누르면 빠른 메뉴</label>
       <label class="chk"><input type="checkbox" id="qshape"> 도형 자동 보정 <span style="color:var(--muted);font-size:12px">(긋고 끝에서 펜을 잠깐 멈추면 직선·원·사각형)</span></label>
       <label class="chk"><input type="checkbox" id="finger"> 손가락으로도 그리기</label>
       <label class="chk"><input type="checkbox" id="fillAll" checked> 채우기: 모든 레이어의 선 기준</label>
@@ -330,7 +355,8 @@ input[type=range]{accent-color:var(--accent);width:100%}
         <b>두 손가락</b> 끌기·벌리기·돌리기로 이동·확대·회전<br>
         <b>두 손가락 탭</b> 실행 취소 · <b>세 손가락 탭</b> 다시 실행<br>
         <b>손가락 길게 누르기</b> 그 자리 색 뽑기<br>
-        <b>S펜 버튼 누른 채 그리기</b> 지우개<br>
+        <b>S펜 버튼 누른 채 화면에 대기</b> 지우개 (위에서 바꿀 수 있어요)<br>
+        <b>펜 띄운 채 버튼</b> 색·브러시 빠른 메뉴<br>
         <b>선 끝에서 펜 멈추기</b> 직선·원·사각형으로 보정<br>
         <b>레이어 왼쪽 손잡이 끌기</b> 레이어 순서 바꾸기<br>
         <b>브러시 버튼 한 번 더</b> 브러시 고르기와 세부 설정
@@ -349,6 +375,29 @@ input[type=range]{accent-color:var(--accent);width:100%}
     <div class="sizerow"><label>가로 <input type="number" id="nmW" min="16" max="5000" inputmode="numeric"></label><span>×</span><label>세로 <input type="number" id="nmH" min="16" max="5000" inputmode="numeric"></label><span>px</span></div>
     <p class="szinfo" id="nmInfo"></p>
     <div class="mbtns"><button class="txtbtn" id="nmCancel">취소</button><button class="txtbtn primary" id="nmOk">만들기</button></div>
+  </div>
+</div>
+
+<div class="scrim" id="penModal" hidden>
+  <div class="modal" role="dialog" aria-labelledby="pmT">
+    <h3 id="pmT">펜 설정</h3>
+    <div class="pgrid">
+      <div class="pcol">
+        <canvas id="padC"></canvas>
+        <div class="pstat" id="pStat"></div>
+        <div class="pvals" id="pVals"></div>
+      </div>
+      <div class="pcol">
+        <div class="psec"><b>필압 범위 맞추기</b>
+          <p>왼쪽 칸에 평소 가장 약하게 2~3번 긋고 <b>약하게 기록</b>, 가장 세게 2~3번 긋고 <b>세게 기록</b>을 누르세요. 그 사이를 0~100%로 늘려 써요.</p>
+          <div class="mbtns left"><button class="txtbtn line" id="pLight">약하게 기록</button><button class="txtbtn line" id="pHard">세게 기록</button><button class="txtbtn" id="pReset">처음으로</button></div>
+          <p class="szinfo" id="pRange"></p></div>
+        <div class="psec"><b>필압 곡선 <span style="font-weight:400;color:var(--muted);font-size:12px">점을 끌어서 바꾸기 · 브러시마다 따로 정할 수도 있어요</span></b>
+          <canvas id="curveC" width="360" height="360"></canvas>
+          <div class="chips" id="curveChips"><button data-g="0.6">부드럽게</button><button data-g="1">보통</button><button data-g="1.7">단단하게</button></div></div>
+      </div>
+    </div>
+    <div class="mbtns"><button class="txtbtn" id="pmClear">칸 지우기</button><button class="txtbtn primary" id="pmClose">닫기</button></div>
   </div>
 </div>
 
@@ -399,7 +448,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 <script>
 (()=>{
 "use strict";
-const VERSION='v1.7';
+const VERSION='v1.8';
 const $=s=>document.querySelector(s);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const IN_ARTIFACT=!!window.claude;
@@ -462,12 +511,14 @@ const BR={
  smudge:{size:44, opacity:.75, hard:.25,sizeP:false,minSize:1,  alphaP:true, flow:1,   spacing:.12,grain:0,  taper:0},
  eraser:{size:36, opacity:1,   hard:.7, sizeP:true, minSize:.35,alphaP:false,flow:1,   spacing:.06,grain:0,  taper:0},
 };
+const BR_EXTRA={pen:{taperEnd:.35,speed:.15},ink:{taperEnd:.6,speed:.45},pencil:{tiltW:.8},crayon:{tiltW:.6},water:{tiltW:.3},air:{tiltW:.5},marker:{flat:.55}};
+for(const k in BR)Object.assign(BR[k],{taperEnd:0,speed:0,tiltW:0,flat:0,curve:0},BR_EXTRA[k]||{});
 const DEF=JSON.parse(JSON.stringify(BR));
 const BNAME={pen:'펜',ink:'붓펜',pencil:'연필',crayon:'크레용',water:'수채',air:'에어브러시',marker:'마커',smudge:'문지르기',eraser:'지우개'};
 const PAINT=['pen','ink','pencil','crayon','water','air','marker','smudge'];
 const BRUSH_TOOLS=[...PAINT,'eraser'];
 let tool='pen', lastBrush='pen';
-const ST={stab:3,curve:1,finger:!matchMedia('(pointer: coarse)').matches,fingerSet:false,penSeen:false,fillAll:true,tol:40,selMode:'rect',qshape:true};
+const ST={stab:3,curve:1,finger:!matchMedia('(pointer: coarse)').matches,fingerSet:false,penSeen:false,fillAll:true,tol:40,selMode:'rect',qshape:true,stabMode:'smooth',penBtn:'eraser',qmenu:true,pLo:0,pHi:0,tiltSeen:false};
 let color={h:220,s:.15,v:.16};
 let recent=['#1c2029','#ffffff','#e34b3f','#f2a33a','#f5d547','#3fae6a','#2a5bd7','#8a4fd8'];
 try{const s=JSON.parse(localStorage.getItem('bg-settings')||'null'); if(s){Object.assign(ST,s.ST||{}); if(s.recent)recent=s.recent;
@@ -551,6 +602,11 @@ function render(){
     if(TF&&TF.L===L){vctx.save();vctx.setTransform(T.multiply(tfMatrix()));vctx.imageSmoothingEnabled=true;vctx.drawImage(TF.c,0,0);vctx.restore();}
   }
   vctx.globalAlpha=1;vctx.globalCompositeOperation='source-over';
+  // 끝 가늘게 대기 중인 구간을 선으로 보여 줌 (펜을 떼면 실제 획으로 바뀜)
+  if(S&&S.pend&&S.pend.length&&!S.eraser&&!S.smudge&&!S.shape){vctx.save();vctx.setTransform(T);vctx.globalAlpha=S.opacity;vctx.strokeStyle=curHex();vctx.lineCap='round';vctx.lineJoin='round';
+    let a=S.cl;for(const q of S.pend){vctx.lineWidth=Math.max(.5,radius(S.b,(a.p+q.p)/2)*2);vctx.beginPath();vctx.moveTo(a.x,a.y);vctx.lineTo(q.x,q.y);vctx.stroke();a=q;}vctx.restore();}
+  // 끈 보정 안내선
+  if(S&&S.penPos&&ST.stabMode==='rope'){const a=toScr(S.sm),b=toScr(S.penPos);vctx.save();vctx.setTransform(DPR,0,0,DPR,0,0);vctx.strokeStyle='rgba(120,128,140,.8)';vctx.lineWidth=1;vctx.setLineDash([3,3]);vctx.beginPath();vctx.moveTo(a.x,a.y);vctx.lineTo(b.x,b.y);vctx.stroke();vctx.setLineDash([]);vctx.beginPath();vctx.arc(b.x,b.y,4,0,7);vctx.stroke();vctx.restore();}
   // 펜이 갈 곳을 미리 그려 지연을 줄임 (다음 프레임에 실제 획으로 바뀜)
   if(S&&S.pred&&S.pred.length&&!S.eraser&&!S.smudge&&!S.shape){vctx.save();vctx.setTransform(T);vctx.globalAlpha=S.opacity*.9;vctx.strokeStyle=curHex();vctx.lineCap='round';vctx.lineJoin='round';
     vctx.lineWidth=Math.max(.5,radius(S.b,S.last.p)*2);vctx.beginPath();vctx.moveTo(S.last.x,S.last.y);S.pred.forEach(q=>vctx.lineTo(q.x,q.y));vctx.stroke();vctx.restore();}
@@ -558,6 +614,10 @@ function render(){
   if(SELD)strokePts(SELD.mode==='rect'?rectPts(SELD.a,SELD.b):SELD.pts,T,SELD.mode==='rect');
   vctx.setTransform(DPR,0,0,DPR,0,0);
   if(TF)drawTfHandles();
+  if(hover&&tool==='picker'&&hover.col&&!TF){const R=26;vctx.save();vctx.lineWidth=10;
+    vctx.beginPath();vctx.arc(hover.x,hover.y,R,Math.PI,0);vctx.strokeStyle=hover.col;vctx.stroke();
+    vctx.beginPath();vctx.arc(hover.x,hover.y,R,0,Math.PI);vctx.strokeStyle=curHex();vctx.stroke();
+    vctx.lineWidth=1;vctx.strokeStyle='rgba(0,0,0,.5)';[R-5,R+5].forEach(rr=>{vctx.beginPath();vctx.arc(hover.x,hover.y,rr,0,7);vctx.stroke();});vctx.restore();}
   if(hover&&BRUSH_TOOLS.includes(tool)&&!TF){
     const b=BR[tool];const r=Math.max(1,b.size/2*V.s*(hover.pen&&b.sizeP?(b.minSize+(1-b.minSize)*.5):1));
     vctx.beginPath();vctx.arc(hover.x,hover.y,r,0,7);vctx.lineWidth=2.5;vctx.strokeStyle='rgba(255,255,255,.8)';vctx.stroke();
@@ -607,9 +667,13 @@ function taperF(b,dist){if(!b.taper)return 1;const L=b.taper*b.size*5+4;return c
 const growBB=(bb,x,y,r)=>{if(x-r<bb[0])bb[0]=x-r;if(y-r<bb[1])bb[1]=y-r;if(x+r>bb[2])bb[2]=x+r;if(y+r>bb[3])bb[3]=y+r;};
 function stampAt(x,y,p){
   if(S.smudge){smudgeAt(x,y,p);return;}
-  const b=S.b,r=radius(b,p);const a=b.flow*(b.alphaP?(.12+.88*p):1);const cx=S.ctx;
+  const b=S.b;let r=radius(b,p);let a=b.flow*(b.alphaP?(.12+.88*p):1);const cx=S.ctx;const tl=S.tl;
+  // 기울기: 눕힐수록 넓고 연하게, 에어브러시는 기울인 쪽으로 퍼짐
+  if(tl&&b.tiltW&&tl.t>.03){r*=1+b.tiltW*tl.t*1.6;a*=1-b.tiltW*tl.t*.55;if(S.name==='air'){x+=Math.cos(tl.az)*tl.t*r*.5;y+=Math.sin(tl.az)*tl.t*r*.5;}}
   cx.globalAlpha=clamp(a,0,1);
-  if(b.grain){const t=Math.random()*6.283;const c=Math.cos(t),s=Math.sin(t);cx.setTransform(c,s,-s,c,x,y);cx.drawImage(S.stamp,-r,-r,2*r,2*r);cx.setTransform(1,0,0,1,0,0);}
+  // 납작 붓: 기울기 방향(없으면 고정 각도)으로 눌린 타원 끝
+  if(b.flat){const ang=tl&&tl.t>.05?tl.az+Math.PI/2:-.6;const c=Math.cos(ang),s=Math.sin(ang),q=1-b.flat*.85;cx.setTransform(c,s,-s*q,c*q,x,y);cx.drawImage(S.stamp,-r,-r,2*r,2*r);cx.setTransform(1,0,0,1,0,0);}
+  else if(b.grain){const t=Math.random()*6.283;const c=Math.cos(t),s=Math.sin(t);cx.setTransform(c,s,-s,c,x,y);cx.drawImage(S.stamp,-r,-r,2*r,2*r);cx.setTransform(1,0,0,1,0,0);}
   else cx.drawImage(S.stamp,x-r,y-r,2*r,2*r);
   growBB(S.bb,x,y,r);if(S.fbb)growBB(S.fbb,x,y,r);
 }
@@ -636,7 +700,8 @@ function beginStroke(pt,eraser){
   const name=eraser?'eraser':(PAINT.includes(tool)?tool:lastBrush);
   copyInto(beforeC,L.canvas);
   sctx.setTransform(1,0,0,1,0,0);sctx.globalCompositeOperation='source-over';sctx.clearRect(0,0,DOC.w,DOC.h);
-  S={name,b:BR[name],eraser,ctx:sctx,stamp:getStamp(name),opacity:BR[name].opacity,last:{...pt},sm:{...pt},carry:0,dist:0,bb:[1e9,1e9,-1e9,-1e9],t0:performance.now(),clip:false,raw:[{...pt}],len:0,pred:null,shape:null};
+  pt={...pt,p:curveP(pt.p,BR[name])};
+  S={name,b:BR[name],eraser,ctx:sctx,stamp:getStamp(name),opacity:BR[name].opacity,last:{...pt},sm:{...pt},cl:{...pt},pend:[],v:0,tl:pt.tl?convTilt(pt.tl):null,carry:0,dist:0,bb:[1e9,1e9,-1e9,-1e9],t0:performance.now(),clip:false,raw:[{...pt}],len:0,pred:null,shape:null};
   if(name==='smudge'){
     const D=Math.ceil(Math.max(2,BR.smudge.size))+2;S.smudge=true;S.D=D;S.tctx=L.ctx;S.tcanvas=L.canvas;S.lock=L.lockAlpha;
     S.smC=mk(D,D);S.smX=S.smC.getContext('2d');S.mkC=mk(D,D);S.mkX=S.mkC.getContext('2d');S.smReady=false;
@@ -649,12 +714,36 @@ function beginStroke(pt,eraser){
 }
 function moveStroke(pt){
   if(S.shape){if(S.shape.type==='line'){S.shape.b={x:pt.x,y:pt.y};drawShape();}return;}
-  const lr=S.raw[S.raw.length-1];S.len+=Math.hypot(pt.x-lr.x,pt.y-lr.y)*V.s;S.raw.push({...pt});
-  const k=1-ST.stab*.088;const sm=S.sm;
-  const n={x:sm.x+(pt.x-sm.x)*k,y:sm.y+(pt.y-sm.y)*k,p:sm.p+(pt.p-sm.p)*Math.min(1,k*1.4)};
-  segment(S.last,n);S.last=n;S.sm=n;
+  pt={...pt,p:curveP(pt.p,S.b)};
+  const lr=S.raw[S.raw.length-1];const dd=Math.hypot(pt.x-lr.x,pt.y-lr.y);S.len+=dd*V.s;
+  if(pt.t&&lr.t&&pt.t>lr.t){const v=dd*V.s/(pt.t-lr.t);S.v=S.v*.7+Math.min(v,8)*.3;}
+  S.raw.push(pt);if(pt.tl)S.tl=convTilt(pt.tl);
+  let p=pt.p;
+  // 속도 반응: 빠르게 그을수록 가늘게
+  if(S.b.speed&&S.b.sizeP)p*=1-S.b.speed*clamp((S.v-.25)/2.2,0,1)*.8;
+  let n;const sm=S.sm;
+  if(ST.stabMode==='rope'&&ST.stab>0){
+    // 끈 보정: 펜이 끈 길이(R)보다 멀어졌을 때만 붓 끝이 끌려옴
+    const R=ST.stab*3.2/V.s,dx=pt.x-sm.x,dy=pt.y-sm.y,d=Math.hypot(dx,dy);S.penPos={x:pt.x,y:pt.y};
+    if(d<=R){holdCheck(pt);return;}
+    const k=(d-R)/d;n={x:sm.x+dx*k,y:sm.y+dy*k,p:sm.p+(p-sm.p)*.5};
+  }else{const k=1-ST.stab*.088;n={x:sm.x+(pt.x-sm.x)*k,y:sm.y+(pt.y-sm.y)*k,p:sm.p+(p-sm.p)*Math.min(1,k*1.4)};}
+  S.sm=n;S.last=n;advance(n);
   holdCheck(pt);
 }
+// 끝 가늘게: 펜 끝 뒤쪽 일정 길이(L)는 바로 찍지 않고 대기(화면엔 미리보기 선) → 펜을 떼면 점점 가늘게 찍음
+function tailLen(){const b=S.b;return b.taperEnd&&!S.smudge?b.taperEnd*b.size*5+4:0;}
+function advance(n){const L=tailLen();if(!L){segment(S.cl,n);S.cl=n;return;}
+  S.pend.push(n);let len=0,prev=S.cl;for(const q of S.pend){len+=Math.hypot(q.x-prev.x,q.y-prev.y);prev=q;}
+  while(S.pend.length>1&&len>L){const q=S.pend.shift();len-=Math.hypot(q.x-S.cl.x,q.y-S.cl.y);segment(S.cl,q);S.cl=q;}}
+function flushTail(){
+  if(!S.pend||!S.pend.length)return;const L=tailLen()||1;const pts=[S.cl,...S.pend];const rem=new Array(pts.length).fill(0);
+  for(let i=pts.length-2;i>=0;i--)rem[i]=rem[i+1]+Math.hypot(pts[i+1].x-pts[i].x,pts[i+1].y-pts[i].y);
+  const f=r=>{const u=clamp(r/L,0,1);return Math.max(.05,u*(2-u));};
+  const q=pts.map((o,i)=>({x:o.x,y:o.y,p:o.p*(i===0?Math.min(1,f(rem[0])):f(rem[i]))}));
+  for(let i=1;i<q.length;i++)segment(q[i-1],q[i]);S.pend=[];S.cl=q[q.length-1];
+}
+const convTilt=tl=>{let az=tl.az-V.r*Math.PI/180;if(V.flip)az=Math.PI-az;return{t:tl.t,az};};
 
 /* ---------- 도형 자동 보정: 선 끝에서 펜을 잠깐 멈추면 직선·원·타원·사각형으로 ---------- */
 function holdCheck(pt){
@@ -688,14 +777,14 @@ function drawShape(){
 }
 function trySnap(){
   if(!S||S.shape||S.smudge||S.len<40)return;const sh=fitShape(S.raw);if(!sh)return;
-  sh.p=clamp(S.raw.reduce((a,q)=>a+q.p,0)/S.raw.length,.3,1);S.shape=sh;S.pred=null;drawShape();
+  sh.p=clamp(S.raw.reduce((a,q)=>a+q.p,0)/S.raw.length,.3,1);S.shape=sh;S.pred=null;S.pend=[];drawShape();
   toast({line:'직선',rect:'사각형',ellipse:sh.circle?'원':'타원'}[sh.type]+'으로 바꿨어요'+(sh.type==='line'?' · 떼지 않고 움직이면 끝점이 따라와요':''));
 }
 function clearBuf(){if(S&&S.clip)sctx.restore();sctx.setTransform(1,0,0,1,0,0);sctx.clearRect(0,0,DOC.w,DOC.h);}
 function endStroke(){
   if(!S)return;const L=layers[active];clearTimeout(S.holdT);
   if(S.smudge){if(S.lclip)L.ctx.restore();}
-  else{L.ctx.globalAlpha=S.opacity;L.ctx.globalCompositeOperation=S.eraser?'destination-out':(L.lockAlpha?'source-atop':'source-over');
+  else{if(!S.shape)flushTail();L.ctx.globalAlpha=S.opacity;L.ctx.globalCompositeOperation=S.eraser?'destination-out':(L.lockAlpha?'source-atop':'source-over');
     L.ctx.drawImage(strokeBuf,0,0);L.ctx.globalAlpha=1;L.ctx.globalCompositeOperation='source-over';}
   const bb=S.bb;const x=Math.max(0,Math.floor(bb[0])-2),y=Math.max(0,Math.floor(bb[1])-2),x2=Math.min(DOC.w,Math.ceil(bb[2])+2),y2=Math.min(DOC.h,Math.ceil(bb[3])+2);
   if(x2>x&&y2>y)pushPx(L,x,y,x2-x,y2-y,beforeC);
@@ -783,8 +872,10 @@ function tfGeom(){const m=tfMatrix();const cs=[[0,0],[TF.w,0],[TF.w,TF.h],[0,TF.
   const rh={x:tm.x+vx/l*34,y:tm.y+vy/l*34};return{cs,c,tm,rh};}
 function drawTfHandles(){const g=tfGeom();vctx.save();vctx.strokeStyle=accentCol;vctx.lineWidth=1.5;vctx.beginPath();g.cs.forEach((p,i)=>i?vctx.lineTo(p.x,p.y):vctx.moveTo(p.x,p.y));vctx.closePath();vctx.stroke();
   vctx.beginPath();vctx.moveTo(g.tm.x,g.tm.y);vctx.lineTo(g.rh.x,g.rh.y);vctx.stroke();
-  vctx.fillStyle='#fff';g.cs.forEach(p=>{vctx.beginPath();vctx.rect(p.x-7,p.y-7,14,14);vctx.fill();vctx.stroke();});
-  vctx.beginPath();vctx.arc(g.rh.x,g.rh.y,8,0,7);vctx.fill();vctx.stroke();vctx.restore();}
+  // 펜이 다가가면 손잡이를 크게, 색을 채워 보여 줌
+  const near=q=>hover&&Math.hypot(hover.x-q.x,hover.y-q.y)<40;
+  g.cs.forEach(p=>{const n=near(p),h=n?11:7;vctx.fillStyle=n?accentCol:'#fff';vctx.beginPath();vctx.rect(p.x-h,p.y-h,h*2,h*2);vctx.fill();vctx.stroke();});
+  {const n=near(g.rh);vctx.fillStyle=n?accentCol:'#fff';vctx.beginPath();vctx.arc(g.rh.x,g.rh.y,n?12:8,0,7);vctx.fill();vctx.stroke();}vctx.restore();}
 function tfDown(sp){const g=tfGeom();let mode='move';
   if(Math.hypot(sp.x-g.rh.x,sp.y-g.rh.y)<26)mode='rot';else if(g.cs.some(p=>Math.hypot(sp.x-p.x,sp.y-p.y)<26))mode='scale';
   tfDrag={mode,sp,d0:toDoc(sp.x,sp.y),tx:TF.tx,ty:TF.ty,sx:TF.sx,sy:TF.sy,rot:TF.rot,c:g.c,dist0:Math.max(4,Math.hypot(sp.x-g.c.x,sp.y-g.c.y)),a0:Math.atan2(sp.y-g.c.y,sp.x-g.c.x)};}
@@ -832,31 +923,41 @@ function floodFill(px,py){
   pushPx(L,minX,minY,bw,bh,beforeC);pushRecent();thumb(L);dirty();changed();
 }
 const pickC=mk(1,1),pickX=pickC.getContext('2d',{willReadFrequently:true});
-function pick(px,py){
-  const x=Math.floor(px),y=Math.floor(py);if(x<0||y<0||x>=DOC.w||y>=DOC.h)return false;
+function sampleAt(px,py){
+  const x=Math.floor(px),y=Math.floor(py);if(x<0||y<0||x>=DOC.w||y>=DOC.h)return null;
   pickX.globalCompositeOperation='copy';pickX.fillStyle='rgba(0,0,0,0)';pickX.fillRect(0,0,1,1);
   layers.forEach(L=>{if(!L.visible)return;pickX.globalAlpha=L.opacity;pickX.globalCompositeOperation=L.blend;pickX.drawImage(L.canvas,x,y,1,1,0,0,1,1);});
-  pickX.globalAlpha=1;const d=pickX.getImageData(0,0,1,1).data;if(d[3]<8){toast('투명한 곳이에요');return false;}
-  setHex(rgb2hex(d[0],d[1],d[2]));toast('색을 가져왔어요 '+curHex());return true;
+  pickX.globalAlpha=1;pickX.globalCompositeOperation='source-over';const d=pickX.getImageData(0,0,1,1).data;return d[3]<8?null:rgb2hex(d[0],d[1],d[2]);
 }
+function pick(px,py){const c=sampleAt(px,py);if(c===null){if(px>=0&&py>=0&&px<DOC.w&&py<DOC.h)toast('투명한 곳이에요');return false;}
+  setHex(c);toast('색을 가져왔어요 '+curHex());return true;}
 
 /* ---------- 입력 ---------- */
 const pts=new Map();let drawId=null,drawFinger=false,mode=null,pan=null,pinch=null,tap=null,lpTimer=null,mousePan=null,space=false;
 const loc=e=>({x:e.clientX-rect.left,y:e.clientY-rect.top});
-function pressure(e){let p=e.pointerType==='pen'?(e.pressure||0):1;if(e.pointerType==='pen'&&p===0)p=.5;return Math.pow(clamp(p,0,1),ST.curve);}
+// 필압: 펜 설정에서 맞춘 범위(pLo~pHi)를 0~1로 늘림. 곡선은 브러시별로 획에서 적용
+function pressure(e){if(e.pointerType!=='pen')return 1;let p=e.pressure||0;if(p===0)p=.5;
+  if(ST.pHi>ST.pLo){const lo=ST.pLo*.6;p=(p-lo)/(ST.pHi-lo);}return clamp(p,.02,1);}
+const curveP=(p,b)=>Math.pow(clamp(p,0,1),(b&&b.curve)||ST.curve);
+// 기울기: altitude/azimuth 가 있으면 그걸, 없으면 tiltX/Y 로. 둘 다 없으면 null
+function tiltOf(e){if(e.pointerType!=='pen')return null;let t,az;
+  if(typeof e.altitudeAngle==='number'&&e.altitudeAngle<Math.PI/2-.02){t=1-e.altitudeAngle/(Math.PI/2);az=e.azimuthAngle||0;}
+  else if(e.tiltX||e.tiltY){az=Math.atan2(Math.tan(e.tiltY*Math.PI/180),Math.tan(e.tiltX*Math.PI/180));t=clamp(Math.hypot(e.tiltX,e.tiltY)/90,0,1);}
+  else return null;
+  if(t>.05&&!ST.tiltSeen){ST.tiltSeen=true;saveSettings();}return{t,az};}
 function startTool(e,sp,eraserBtn){
   rect=stage.getBoundingClientRect();
   const d=toDoc(sp.x,sp.y);
   if(TF){tfDown(sp);return'tf';}
-  if(eraserBtn)return beginStroke({x:d.x,y:d.y,p:pressure(e)},true)?'stroke':null;
+  if(eraserBtn)return beginStroke({x:d.x,y:d.y,p:pressure(e),tl:tiltOf(e),t:e.timeStamp},true)?'stroke':null;
   if(tool==='fill'){floodFill(d.x,d.y);return null;}
   if(tool==='picker'){if(pick(d.x,d.y))setTool(lastBrush);return null;}
   if(tool==='hand'){mousePan={id:e.pointerId,x:sp.x,y:sp.y};return null;}
   if(tool==='select'){selDown(d);return'sel';}
-  return beginStroke({x:d.x,y:d.y,p:pressure(e)},tool==='eraser')?'stroke':null;
+  return beginStroke({x:d.x,y:d.y,p:pressure(e),tl:tiltOf(e),t:e.timeStamp},tool==='eraser')?'stroke':null;
 }
 function inputMove(e){
-  if(mode==='stroke'&&S){const evs=e.getCoalescedEvents?e.getCoalescedEvents():[];for(const ev of(evs.length?evs:[e])){const p=loc(ev);const d=toDoc(p.x,p.y);moveStroke({x:d.x,y:d.y,p:e.pointerType==='touch'?1:pressure(ev)});}
+  if(mode==='stroke'&&S){const evs=e.getCoalescedEvents?e.getCoalescedEvents():[];for(const ev of(evs.length?evs:[e])){const p=loc(ev);const d=toDoc(p.x,p.y);moveStroke({x:d.x,y:d.y,p:e.pointerType==='touch'?1:pressure(ev),tl:tiltOf(ev),t:ev.timeStamp});}
     if(S&&e.pointerType==='pen'&&e.getPredictedEvents&&!S.shape){const pr=e.getPredictedEvents();S.pred=pr.length?pr.slice(-3).map(ev=>{const q=loc(ev);return toDoc(q.x,q.y);}):null;}}
   else if(mode==='sel'){const p=loc(e);selMove(toDoc(p.x,p.y));}
   else if(mode==='tf'){tfMove(loc(e));}
@@ -868,7 +969,8 @@ function inputEnd(cancel){
   else if(mode==='tf'){tfDrag=null;}
   drawId=null;drawFinger=false;mode=null;
 }
-view.addEventListener('contextmenu',e=>e.preventDefault());
+view.addEventListener('contextmenu',e=>{e.preventDefault();if(!ST.qmenu||drawId!==null||performance.now()-penBtnAt<800||e.pointerType==='touch')return;rect=stage.getBoundingClientRect();openQM(loc(e));});
+let penBtnHeld=false,penBtnAt=0,prevTool=null;
 view.addEventListener('pointerdown',e=>{
   rect=stage.getBoundingClientRect();
   try{view.setPointerCapture(e.pointerId);}catch(_){}
@@ -879,8 +981,14 @@ view.addEventListener('pointerdown',e=>{
   if(e.pointerType==='mouse'&&(e.button===1||space)){mousePan={id:e.pointerId,x:sp.x,y:sp.y};return;}
   if(e.pointerType==='mouse'&&e.button!==0)return;
   if(pinch||drawId!==null)return;
-  const eraserBtn=e.pointerType==='pen'&&!TF&&((e.buttons&2)||(e.buttons&32)||e.button===2||e.button===5);
-  hover=null;
+  const penBtn=e.pointerType==='pen'&&!TF&&((e.buttons&2)||(e.buttons&32)||e.button===2||e.button===5);
+  hover=null;closeQM();
+  if(penBtn&&ST.penBtn!=='eraser'){penBtnAt=performance.now();const d=toDoc(sp.x,sp.y);
+    if(ST.penBtn==='picker')pick(d.x,d.y);else if(ST.penBtn==='pan')mousePan={id:e.pointerId,x:sp.x,y:sp.y};
+    else if(ST.penBtn==='prev'){setTool(prevTool&&prevTool!==tool?prevTool:(tool===lastBrush?'eraser':lastBrush));toast(BNAME[tool]||({fill:'채우기',picker:'스포이드',select:'선택',hand:'이동'})[tool]);}
+    else if(ST.penBtn==='undo')undo();
+    return;}
+  const eraserBtn=penBtn;
   const m=startTool(e,sp,eraserBtn);if(m){drawId=e.pointerId;drawFinger=false;mode=m;}
 });
 view.addEventListener('pointermove',e=>{
@@ -888,7 +996,10 @@ view.addEventListener('pointermove',e=>{
   const sp=loc(e);
   if(mousePan&&mousePan.id===e.pointerId){V.tx+=sp.x-mousePan.x;V.ty+=sp.y-mousePan.y;mousePan.x=sp.x;mousePan.y=sp.y;updM();dirty();return;}
   if(drawId===e.pointerId){inputMove(e);return;}
-  if(drawId===null&&(e.pointerType==='pen'||e.pointerType==='mouse')){hover={x:sp.x,y:sp.y,pen:e.pointerType==='pen'};dirty();}
+  if(drawId===null&&(e.pointerType==='pen'||e.pointerType==='mouse')){hover={x:sp.x,y:sp.y,pen:e.pointerType==='pen'};
+    if(tool==='picker'&&!TF){const d=toDoc(sp.x,sp.y);hover.col=sampleAt(d.x,d.y);}
+    if(e.pointerType==='pen'){const btn=!!(e.buttons&2)||!!(e.buttons&32);if(btn&&!penBtnHeld&&ST.qmenu&&!e.pressure)openQM(sp);penBtnHeld=btn;}
+    dirty();}
 });
 function penUp(e){
   if(e.pointerType==='touch'){touchUp(e);return;}
@@ -961,7 +1072,7 @@ addEventListener('keydown',e=>{
   if(mod&&k==='y'){e.preventDefault();redo();return;}
   if(mod&&k==='a'){e.preventDefault();selectAll();return;}
   if(mod&&k==='d'){e.preventDefault();SEL=null;updBars();dirty();return;}
-  if(k==='escape'){if(TF)cancelTF();else{SEL=null;updBars();dirty();}closePops();return;}
+  if(k==='escape'){closeQM();if(TF)cancelTF();else{SEL=null;updBars();dirty();}closePops();return;}
   if(k==='enter'&&TF){commitTF();return;}
   if(k===' '){space=true;e.preventDefault();return;}
   const map={b:lastBrush,e:'eraser',g:'fill',i:'picker',h:'hand',s:'select',t:'transform'};
@@ -989,6 +1100,7 @@ const curB=()=>BR[BRUSH_TOOLS.includes(tool)?tool:lastBrush];
 const sizeSl=vSlider($('#sizeS'),{min:1,max:400,log:true,get:()=>curB().size,set:v=>{curB().size=v;dirty();},fmt:v=>v<10?v.toFixed(1):Math.round(v)});
 const opSl=vSlider($('#opS'),{min:.02,max:1,get:()=>curB().opacity,set:v=>{curB().opacity=v;},fmt:v=>Math.round(v*100)+'%'});
 function setTool(t){
+  if(t!==tool)prevTool=tool;
   if(TF&&t!=='select')commitTF();
   if(t!=='select'&&SELD)SELD=null;
   tool=t;if(PAINT.includes(t))lastBrush=t;
@@ -1022,14 +1134,18 @@ function buildBrushPop(){
     b.onclick=()=>{setTool(n);buildBrushPop();};list.appendChild(b);});
   const ed=$('#brushEd');const B=BR[name];
   const rows=[['hard','가장자리 선명도',0,1,.01,v=>Math.round(v*100)+'%'],['flow','한 번에 묻는 양',.01,1,.01,v=>Math.round(v*100)+'%'],['spacing','점 간격',.02,1,.01,v=>Math.round(v*100)+'%'],
-    ['minSize','가장 가늘 때',0,1,.01,v=>Math.round(v*100)+'%'],['grain','종이 질감',0,1,.01,v=>Math.round(v*100)+'%'],['taper','시작을 가늘게',0,1,.01,v=>Math.round(v*100)+'%']];
+    ['minSize','가장 가늘 때',0,1,.01,v=>Math.round(v*100)+'%'],['grain','종이 질감',0,1,.01,v=>Math.round(v*100)+'%'],['taper','시작을 가늘게',0,1,.01,v=>Math.round(v*100)+'%'],
+    ['taperEnd','끝을 가늘게',0,1,.01,v=>Math.round(v*100)+'%'],['speed','빠르면 가늘게',0,1,.01,v=>Math.round(v*100)+'%'],['tiltW','기울이면 넓고 연하게',0,1,.01,v=>Math.round(v*100)+'%'],['flat','납작 붓',0,1,.01,v=>Math.round(v*100)+'%']].filter(r=>name!=='smudge'||!['taperEnd','speed','flat','tiltW'].includes(r[0]));
   ed.innerHTML=`<div style="font-size:12px;color:var(--muted)">${BNAME[name]} 세부 설정</div>`+(bpEraser?`<canvas data-b="eraser" style="width:100%;height:40px"></canvas>`:'')+
     rows.map(([k,l,mn,mx,st])=>`<label class="erow"><span>${l}</span><input type="range" id="be-${k}" min="${mn}" max="${mx}" step="${st}" value="${B[k]}"><span id="bev-${k}"></span></label>`).join('')+
-    `<label class="chk"><input type="checkbox" id="be-sizeP" ${B.sizeP?'checked':''}> 필압으로 굵기 바꾸기</label><label class="chk"><input type="checkbox" id="be-alphaP" ${B.alphaP?'checked':''}> 필압으로 농도 바꾸기</label>`;
+    `<label class="chk"><input type="checkbox" id="be-sizeP" ${B.sizeP?'checked':''}> 필압으로 굵기 바꾸기</label><label class="chk"><input type="checkbox" id="be-alphaP" ${B.alphaP?'checked':''}> 필압으로 농도 바꾸기</label>`+
+    `<label class="erow" style="grid-template-columns:112px 1fr"><span>필압 곡선</span><select id="be-curve" style="height:30px;border-radius:8px;border:1px solid var(--line);background:var(--panel)"><option value="0">펜 설정 따르기</option><option value="0.6">부드럽게</option><option value="1">보통</option><option value="1.7">단단하게</option></select></label>`+
+    (ST.tiltSeen?'':`<div class="hint" style="font-size:11px;color:var(--muted)">기울기·납작 붓 방향은 펜이 기울기 값을 보낼 때만 쓰여요. 설정 → 펜 설정에서 확인할 수 있어요</div>`);
   const changedB=()=>{stampCache.clear();drawPreviews();saveSettings();sizeSl.update();opSl.update();};
   rows.forEach(([k,,,,,f])=>{const i=$('#be-'+k),v=$('#bev-'+k);v.textContent=f(B[k]);i.oninput=()=>{B[k]=+i.value;v.textContent=f(B[k]);changedB();};});
   $('#be-sizeP').onchange=e=>{B.sizeP=e.target.checked;changedB();};
   $('#be-alphaP').onchange=e=>{B.alphaP=e.target.checked;changedB();};
+  const bc=$('#be-curve');bc.value=String(B.curve||0);if(bc.selectedIndex<0)bc.value='0';bc.onchange=()=>{B.curve=+bc.value;changedB();};
   $('#bpReset').onclick=()=>{BR[name]=JSON.parse(JSON.stringify(DEF[name]));buildBrushPop();changedB();toast(BNAME[name]+' 설정을 처음으로 되돌렸어요');};
   requestAnimationFrame(drawPreviews);
 }
@@ -1116,9 +1232,12 @@ $('#bExport').onclick=e=>{e.stopPropagation();if(!expPop.hidden){expPop.hidden=t
 [setPop,expPop,brushPop].forEach(p=>p.addEventListener('pointerdown',e=>e.stopPropagation()));
 function closePops(){setPop.hidden=true;expPop.hidden=true;brushPop.hidden=true;if(!wide.matches)side.classList.remove('open');}
 document.addEventListener('pointerdown',e=>{if(!e.target.closest('.pop,#bSet,#bExport,#tBrush,[data-tool]'))[setPop,expPop,brushPop].forEach(p=>p.hidden=true);});
-function syncSettings(){$('#qshape').checked=ST.qshape;$('#stab').value=ST.stab;$('#stabV').textContent=ST.stab;$('#curve').value=String(ST.curve);$('#finger').checked=ST.finger;$('#fillAll').checked=ST.fillAll;$('#tol').value=ST.tol;$('#tolV').textContent=ST.tol;}
+function syncSettings(){$('#qshape').checked=ST.qshape;$('#stab').value=ST.stab;$('#stabV').textContent=ST.stab;$('#stabMode').value=ST.stabMode;$('#penBtn').value=ST.penBtn;$('#qmenuOn').checked=ST.qmenu;$('#finger').checked=ST.finger;$('#fillAll').checked=ST.fillAll;$('#tol').value=ST.tol;$('#tolV').textContent=ST.tol;}
 $('#stab').oninput=e=>{ST.stab=+e.target.value;syncSettings();saveSettings();};
-$('#curve').onchange=e=>{ST.curve=+e.target.value;saveSettings();};
+$('#stabMode').onchange=e=>{ST.stabMode=e.target.value;saveSettings();};
+$('#penBtn').onchange=e=>{ST.penBtn=e.target.value;saveSettings();};
+$('#qmenuOn').onchange=e=>{ST.qmenu=e.target.checked;saveSettings();};
+$('#bPen').onclick=()=>{closePops();openPen();};
 $('#qshape').onchange=e=>{ST.qshape=e.target.checked;saveSettings();};
 $('#finger').onchange=e=>{ST.finger=e.target.checked;ST.fingerSet=true;saveSettings();};
 $('#fillAll').onchange=e=>{ST.fillAll=e.target.checked;saveSettings();};
@@ -1326,6 +1445,68 @@ let instEvt=null;
 addEventListener('beforeinstallprompt',e=>{e.preventDefault();instEvt=e;$('#bInstall').hidden=false;});
 $('#bInstall').onclick=async()=>{if(!instEvt)return;instEvt.prompt();try{await instEvt.userChoice;}catch(_){}instEvt=null;$('#bInstall').hidden=true;};
 addEventListener('appinstalled',()=>{$('#bInstall').hidden=true;toast('앱으로 설치했어요');});
+
+/* ---------- 빠른 메뉴 (펜을 띄운 채 버튼 / 마우스 오른쪽 버튼) ---------- */
+const qm=$('#qmenu');
+function openQM(sp){
+  if(S||TF)return;const W=SW,H=SH;const x=clamp(sp.x,118,W-118),y=clamp(sp.y,118,H-118);qm.style.left=x+'px';qm.style.top=y+'px';qm.innerHTML='';
+  const add=(ang,rad,html,cls,fn,tip)=>{const b=document.createElement('button');b.className=cls||'';b.style.left=(110+Math.cos(ang)*rad)+'px';b.style.top=(110+Math.sin(ang)*rad)+'px';b.innerHTML=html;if(tip)b.setAttribute('aria-label',tip);
+    b.addEventListener('pointerup',ev=>{ev.stopPropagation();fn();closeQM();});b.addEventListener('pointerdown',ev=>ev.stopPropagation());qm.appendChild(b);return b;};
+  recent.slice(0,8).forEach((c,i)=>{const b=add(-Math.PI/2+i*Math.PI/4,82,'','',()=>{setHex(c);if(!PAINT.includes(tool))setTool(lastBrush);},'색 '+c);b.style.background=c;if(c===curHex())b.classList.add('on');});
+  const tools=[[lastBrush,svg(lastBrush),()=>setTool(lastBrush),BNAME[lastBrush]],['eraser',svg('eraser'),()=>setTool('eraser'),'지우개'],['undo',svg('undo'),undo,'실행 취소'],['redo',svg('redo'),redo,'다시 실행']];
+  tools.forEach(([k,h,fn,tp],i)=>{const b=add(-Math.PI/2+i*Math.PI/2,40,h,'',fn,tp);if(k===tool)b.classList.add('on');});
+  add(0,0,'×','qc',()=>{},'닫기');
+  qm.hidden=false;
+}
+function closeQM(){qm.hidden=true;}
+document.addEventListener('pointerdown',e=>{if(!qm.hidden&&!e.target.closest('#qmenu'))closeQM();},true);
+
+/* ---------- 펜 설정 창: 실시간 값 · 필압 범위 · 곡선 ---------- */
+const padC=$('#padC');let padX=null,padSamples=[],padSeen={tilt:false,btn:false,hover:false,pen:false},padLast=null;
+function openPen(){$('#penModal').hidden=false;requestAnimationFrame(()=>{const r=padC.getBoundingClientRect();padC.width=Math.round(r.width*2);padC.height=Math.round(r.height*2);padX=padC.getContext('2d');padClear();drawCurve();penStat();rangeText();});}
+function padClear(){if(!padX)return;padX.fillStyle='#fff';padX.fillRect(0,0,padC.width,padC.height);padX.fillStyle='#9aa1ad';padX.font='26px '+getComputedStyle(document.body).fontFamily;padX.fillText('여기에 그어 보세요',20,40);padSamples=[];}
+function penVals(e,down){const deg=v=>v==null?'-':Math.round(v*180/Math.PI)+'°';
+  const rows=[['종류',{pen:'펜',mouse:'마우스',touch:'손가락'}[e.pointerType]||e.pointerType],['상태',down?'닿음':'띄움'],['필압 (원래 값)',(e.pressure||0).toFixed(3)],['필압 (보정 후)',e.pointerType==='pen'?curveP(pressure(e),null).toFixed(3):'-'],
+    ['기울기 X / Y',`${Math.round(e.tiltX||0)}° / ${Math.round(e.tiltY||0)}°`],['높이각 / 방위각',`${deg(e.altitudeAngle)} / ${deg(e.azimuthAngle)}`],['버튼',String(e.buttons)]];
+  $('#pVals').innerHTML=rows.map(([a,b])=>`<span>${a}</span><span>${b}</span>`).join('');}
+function penStat(){const it=(ok,a,b)=>`<span class="${ok?'ok':'no'}">${ok?'✓ '+a:'· '+b}</span>`;
+  $('#pStat').innerHTML=it(padSeen.pen,'펜 신호가 들어와요','펜으로 칸에 그어 보세요')+it(padSeen.tilt||ST.tiltSeen,'기울기 값이 들어와요. 연필·크레용·수채·에어브러시·마커가 기울기에 반응해요','기울기 값은 아직 없어요. 펜을 눕혀서 그어 보세요. 계속 0°면 이 기기·브라우저는 기울기를 보내지 않아요')+
+    it(padSeen.hover,'호버(띄운 펜) 신호가 들어와요','펜을 화면에 대지 말고 살짝 띄워 움직여 보세요')+it(padSeen.btn,'S펜 버튼 신호가 들어와요','S펜 버튼을 누른 채 칸에 대 보세요');}
+padC.addEventListener('pointerdown',e=>{e.preventDefault();padC.setPointerCapture(e.pointerId);padLast=null;padSamples.push([]);padMove(e,true);});
+padC.addEventListener('pointermove',e=>padMove(e,e.buttons>0&&(e.pointerType!=='pen'||e.pressure>0)));
+padC.addEventListener('pointerup',()=>{padLast=null;});
+function padMove(e,down){penVals(e,down);let ch=false;
+  if(e.pointerType==='pen'&&!padSeen.pen){padSeen.pen=true;ch=true;}
+  if(e.pointerType==='pen'&&!down&&!padSeen.hover){padSeen.hover=true;ch=true;}
+  if(e.pointerType==='pen'&&(e.buttons&2||e.buttons&32)&&!padSeen.btn){padSeen.btn=true;ch=true;}
+  const tl=tiltOf(e);if(tl&&tl.t>.05&&!padSeen.tilt){padSeen.tilt=true;ch=true;}if(ch)penStat();
+  if(!down||!padX)return;const r=padC.getBoundingClientRect(),k=padC.width/r.width;
+  const evs=e.getCoalescedEvents?e.getCoalescedEvents():[];for(const ev of(evs.length?evs:[e])){
+    const x=(ev.clientX-r.left)*k,y=(ev.clientY-r.top)*k;if(ev.pointerType==='pen'&&ev.pressure>0&&padSamples.length)padSamples[padSamples.length-1].push(ev.pressure);
+    const p=curveP(pressure(ev),null),w=2+p*22;const t2=tiltOf(ev);
+    padX.strokeStyle=`rgb(${Math.round(40+180*(t2?t2.t:0))},60,${Math.round(200-120*p)})`;padX.lineCap='round';padX.lineWidth=w;
+    padX.beginPath();padX.moveTo(padLast?padLast.x:x,padLast?padLast.y:y);padX.lineTo(x,y);padX.stroke();padLast={x,y};}
+}
+const pct=(a,q)=>{if(!a.length)return 0;const b=[...a].sort((x,y)=>x-y);return b[Math.min(b.length-1,Math.floor(q*b.length))];};
+function rangeText(){const el=$('#pRange');el.classList.remove('err');el.textContent=ST.pHi>ST.pLo?`지금 범위: 약하게 ${ST.pLo.toFixed(2)} ~ 세게 ${ST.pHi.toFixed(2)} → 0~100%로 늘려 써요`:'지금은 펜이 보내는 값을 그대로 써요';}
+let lightTmp=null;
+$('#pLight').onclick=()=>{const all=padSamples.flat();if(all.length<10){const el=$('#pRange');el.textContent='먼저 칸에 펜으로 약하게 그어 주세요';el.classList.add('err');return;}
+  lightTmp=pct(all,.5);ST.pLo=lightTmp;if(ST.pHi&&ST.pHi<=ST.pLo+.05)ST.pHi=0;saveSettings();padClear();rangeText();$('#pRange').textContent+=' · 이제 세게 그어 보세요';};
+$('#pHard').onclick=()=>{const all=padSamples.flat();if(all.length<10){const el=$('#pRange');el.textContent='먼저 칸에 펜으로 세게 그어 주세요';el.classList.add('err');return;}
+  const hi=pct(all,.9);if(hi<=ST.pLo+.05){const el=$('#pRange');el.textContent='세게 그은 값이 약하게 그은 값과 비슷해요. 더 세게 눌러 그어 보세요';el.classList.add('err');padClear();return;}
+  ST.pHi=Math.min(1,hi);saveSettings();padClear();rangeText();};
+$('#pReset').onclick=()=>{ST.pLo=0;ST.pHi=0;saveSettings();rangeText();};
+$('#pmClear').onclick=padClear;$('#pmClose').onclick=()=>{$('#penModal').hidden=true;};
+const curveC=$('#curveC'),cvX=curveC.getContext('2d');
+function drawCurve(){const W=curveC.width,H=curveC.height,m=24;cvX.clearRect(0,0,W,H);const cs=getComputedStyle(document.documentElement);
+  cvX.strokeStyle=cs.getPropertyValue('--line');cvX.lineWidth=2;for(let i=0;i<=4;i++){const x=m+(W-2*m)*i/4,y=m+(H-2*m)*i/4;cvX.beginPath();cvX.moveTo(x,m);cvX.lineTo(x,H-m);cvX.moveTo(m,y);cvX.lineTo(W-m,y);cvX.stroke();}
+  cvX.strokeStyle=cs.getPropertyValue('--accent');cvX.lineWidth=5;cvX.beginPath();for(let i=0;i<=60;i++){const u=i/60,v=Math.pow(u,ST.curve);const x=m+(W-2*m)*u,y=H-m-(H-2*m)*v;i?cvX.lineTo(x,y):cvX.moveTo(x,y);}cvX.stroke();
+  const u=.5,v=Math.pow(u,ST.curve);cvX.fillStyle='#fff';cvX.beginPath();cvX.arc(m+(W-2*m)*u,H-m-(H-2*m)*v,14,0,7);cvX.fill();cvX.stroke();
+  cvX.fillStyle=cs.getPropertyValue('--muted');cvX.font='20px '+getComputedStyle(document.body).fontFamily;cvX.fillText('누르는 힘 →',W-m-110,H-4);cvX.save();cvX.translate(16,m+100);cvX.rotate(-Math.PI/2);cvX.fillText('굵기 →',0,0);cvX.restore();
+  $('#curveChips').querySelectorAll('button').forEach(b=>b.classList.toggle('on',Math.abs(+b.dataset.g-ST.curve)<.02));}
+dragOn(curveC,e=>{const r=curveC.getBoundingClientRect(),m=24*r.width/curveC.width;const u=clamp((e.clientX-r.left-m)/(r.width-2*m),.05,.95),v=clamp(1-(e.clientY-r.top-m)/(r.height-2*m),.05,.95);
+  ST.curve=clamp(Math.log(v)/Math.log(u),.3,3);drawCurve();saveSettings();});
+$('#curveChips').querySelectorAll('button').forEach(b=>b.onclick=()=>{ST.curve=+b.dataset.g;drawCurve();saveSettings();});
 
 /* ---------- 말풍선 ---------- */
 // 펜이나 마우스를 버튼 위에 띄우면 잠깐 뒤 설명을 보여 줌. 가장자리에서 펜이 떨려도 바로 사라지지 않게 짧은 여유를 둠
