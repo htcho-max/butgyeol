@@ -66,6 +66,9 @@ button,select,input{font:inherit;color:inherit}
 #toast.show{opacity:1}
 .fbar{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:2px;padding:4px;background:var(--raised);border:1px solid var(--line);border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.14);max-width:calc(100% - 16px);overflow-x:auto;scrollbar-width:none}
 .fbar::-webkit-scrollbar{display:none}
+body.adjOn .fbar{display:none!important}
+#selBar{flex-wrap:wrap;justify-content:center;overflow:visible;row-gap:2px}
+#selBar>span{flex-wrap:wrap;justify-content:center}
 .fb{height:36px;padding:0 10px;border:0;border-radius:8px;background:transparent;cursor:pointer;font-size:13px;font-weight:500;white-space:nowrap;flex:none}
 .fb:hover{background:var(--accent-soft)}
 .fb.primary{background:var(--accent);color:var(--accent-ink)}
@@ -307,7 +310,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
         <span id="selModeWrap" style="display:flex;gap:2px"><button class="fb" data-m="rect">사각형</button><button class="fb" data-m="lasso">올가미</button><button class="fb" data-m="wand" title="자동 선택 · 누른 곳과 비슷한 색 영역을 골라요">자동 선택</button><span class="vsep"></span>
           <button class="fb" data-op="new" title="새로 선택">새로</button><button class="fb" data-op="add" title="지금 선택에 더하기">더하기</button><button class="fb" data-op="sub" title="지금 선택에서 빼기">빼기</button><span class="vsep"></span></span>
         <button class="fb" id="sAll">전체 선택</button><button class="fb" id="sOpt" title="선택 옵션 · 자동 선택 기준과 허용 범위, 넓히기·줄이기·가장자리 흐리게">선택 옵션</button>
-        <span id="selOps" style="display:flex;gap:2px"><button class="fb" id="sInv">반전</button><button class="fb" id="sCopy">새 레이어로 복사</button><button class="fb" id="sDel">지우기</button><button class="fb" id="sCrop">이 영역으로 자르기</button><button class="fb" id="sNone">선택 해제</button></span>
+        <span id="selOps" style="display:flex;gap:2px"><button class="fb" id="sInv">반전</button><button class="fb" id="sCopy" title="선택한 부분을 새 레이어로 복사">레이어로 복사</button><button class="fb" id="sDel">지우기</button><button class="fb" id="sCrop" title="선택한 영역 크기로 캔버스 자르기">영역 자르기</button><button class="fb" id="sNone">선택 해제</button></span>
         <span class="vsep"></span>
         <button class="fb primary" id="sTf">변형</button>
       </div>
@@ -324,7 +327,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
         <div id="adjBody" style="display:flex;flex-direction:column;gap:10px"></div>
         <div class="mbtns"><button class="txtbtn" id="adjReset">초기화</button><button class="txtbtn" id="adjCancel">취소</button><button class="txtbtn primary" id="adjOk">적용</button></div>
       </div>
-      <div class="pop" id="selPop" hidden style="top:56px;left:50%;transform:translateX(-50%);width:min(320px,calc(100% - 24px))">
+      <div class="pop" id="selPop" hidden style="top:112px;left:50%;transform:translateX(-50%);width:min(320px,calc(100% - 24px))">
         <h3>선택 옵션</h3>
         <div class="field"><label for="wRef">자동 선택 기준</label><select id="wRef"><option value="all">보이는 그림 전체</option><option value="layer">지금 레이어</option><option value="ref">참조 레이어</option></select></div>
         <div class="field"><label for="wTol">허용 범위 <b id="wTolV"></b></label><input type="range" id="wTol" min="0" max="120" value="32"></div>
@@ -1235,7 +1238,7 @@ function openAdj(){
   const orig=T.ctx.getImageData(x,y,w,h);let sa=null;if(SEL){const t=mk(w,h),tx=t.getContext('2d',{willReadFrequently:true});tx.drawImage(SEL.m,x,y,w,h,0,0,w,h);sa=tx.getImageData(0,0,w,h).data;}
   ADJ={T,bb,orig,sa,tab:ADJ&&ADJ.tab||'hsl',v:JSON.parse(JSON.stringify(ADJDEF)),raf:0};
   $('#adjTarget').textContent=(layers[active].name||'레이어')+(SEL?' · 선택 안만':'');
-  adjPop.hidden=false;adjTab(ADJ.tab);
+  adjPop.hidden=false;document.body.classList.add('adjOn');adjTab(ADJ.tab);
 }
 function adjTab(t){ADJ.tab=t;$('#adjTabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.a===t));
   const body=$('#adjBody');body.innerHTML='';const v=ADJ.v[t];
@@ -1266,7 +1269,7 @@ function adjRender(){const{T,bb,orig,sa,tab}=ADJ,v=ADJ.v[tab],o=orig.data,out=ne
       else for(let c=0;c<3;c++)d[i+c]=Math.round(o[i+c]/255*st)/st*255;}}
   if(sa)for(let i=0;i<n;i+=4){const a=sa[i+3]/255;if(a>=1)continue;for(let c=0;c<3;c++)d[i+c]=o[i+c]+(d[i+c]-o[i+c])*a;}
   T.ctx.putImageData(out,bb[0],bb[1]);dirty();}
-function adjClose(){if(ADJ&&ADJ.raf)cancelAnimationFrame(ADJ.raf);ADJ=null;adjPop.hidden=true;}
+function adjClose(){if(ADJ&&ADJ.raf)cancelAnimationFrame(ADJ.raf);ADJ=null;adjPop.hidden=true;document.body.classList.remove('adjOn');}
 function adjCancel(){if(!ADJ)return;copyInto(ADJ.T.canvas,beforeC);adjClose();dirty();}
 $('#adjCancel').onclick=adjCancel;
 $('#adjReset').onclick=()=>{if(!ADJ)return;ADJ.v[ADJ.tab]=JSON.parse(JSON.stringify(ADJDEF[ADJ.tab]));adjTab(ADJ.tab);};
