@@ -347,6 +347,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
       <div class="field"><label for="penBtn">S펜 버튼을 누른 채 화면에 대면</label>
         <select id="penBtn"><option value="eraser">지우개로 그리기</option><option value="picker">그 자리 색 뽑기</option><option value="pan">화면 이동</option><option value="prev">직전 도구로 바꾸기</option><option value="undo">실행 취소</option></select></div>
       <label class="chk"><input type="checkbox" id="qmenuOn"> 펜을 띄운 채 버튼을 누르면 빠른 메뉴</label>
+      <label class="chk"><input type="checkbox" id="predict"> 펜 예측선 <span style="color:var(--muted);font-size:12px">(펜이 갈 곳을 미리 그려 지연을 줄여요. 두께가 실제 선과 조금 달라요)</span></label>
       <label class="chk"><input type="checkbox" id="qshape"> 도형 자동 보정 <span style="color:var(--muted);font-size:12px">(긋고 끝에서 펜을 잠깐 멈추면 직선·원·사각형)</span></label>
       <label class="chk"><input type="checkbox" id="finger"> 손가락으로도 그리기</label>
       <label class="chk"><input type="checkbox" id="fillAll" checked> 채우기: 모든 레이어의 선 기준</label>
@@ -448,7 +449,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 <script>
 (()=>{
 "use strict";
-const VERSION='v1.8';
+const VERSION='v1.9';
 const $=s=>document.querySelector(s);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const IN_ARTIFACT=!!window.claude;
@@ -518,7 +519,7 @@ const BNAME={pen:'펜',ink:'붓펜',pencil:'연필',crayon:'크레용',water:'�
 const PAINT=['pen','ink','pencil','crayon','water','air','marker','smudge'];
 const BRUSH_TOOLS=[...PAINT,'eraser'];
 let tool='pen', lastBrush='pen';
-const ST={stab:3,curve:1,finger:!matchMedia('(pointer: coarse)').matches,fingerSet:false,penSeen:false,fillAll:true,tol:40,selMode:'rect',qshape:true,stabMode:'smooth',penBtn:'eraser',qmenu:true,pLo:0,pHi:0,tiltSeen:false};
+const ST={stab:3,curve:1,finger:!matchMedia('(pointer: coarse)').matches,fingerSet:false,penSeen:false,fillAll:true,tol:40,selMode:'rect',qshape:true,stabMode:'smooth',penBtn:'eraser',qmenu:true,pLo:0,pHi:0,tiltSeen:false,predict:false};
 let color={h:220,s:.15,v:.16};
 let recent=['#1c2029','#ffffff','#e34b3f','#f2a33a','#f5d547','#3fae6a','#2a5bd7','#8a4fd8'];
 try{const s=JSON.parse(localStorage.getItem('bg-settings')||'null'); if(s){Object.assign(ST,s.ST||{}); if(s.recent)recent=s.recent;
@@ -529,9 +530,9 @@ function saveSettings(){try{localStorage.setItem('bg-settings',JSON.stringify({S
 /* ---------- 문서 ---------- */
 const mk=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
 let DOC={w:2400,h:1500}, layers=[], active=0, nameSeq=1, idSeq=1;
-let strokeBuf,sctx,beforeC,bctx,work,wctx;
+let strokeBuf,sctx,beforeC,bctx,work,wctx,cbuf,cctx;
 function newLayer(name){const c=mk(DOC.w,DOC.h);return{id:idSeq++,name:name||('레이어 '+(nameSeq++)),canvas:c,ctx:c.getContext('2d'),opacity:1,blend:'source-over',visible:true,lockAlpha:false};}
-function allocBuffers(){strokeBuf=mk(DOC.w,DOC.h);sctx=strokeBuf.getContext('2d');beforeC=mk(DOC.w,DOC.h);bctx=beforeC.getContext('2d');work=mk(DOC.w,DOC.h);wctx=work.getContext('2d');}
+function allocBuffers(){strokeBuf=mk(DOC.w,DOC.h);sctx=strokeBuf.getContext('2d');beforeC=mk(DOC.w,DOC.h);bctx=beforeC.getContext('2d');work=mk(DOC.w,DOC.h);wctx=work.getContext('2d');cbuf=mk(DOC.w,DOC.h);cctx=cbuf.getContext('2d');}
 function initDoc(w,h,blank){
   DOC={w,h};layers=[];nameSeq=1;SEL=null;SELD=null;TF=null;
   if(!blank){const bg=newLayer('배경');bg.ctx.fillStyle='#ffffff';bg.ctx.fillRect(0,0,w,h);layers.push(bg);layers.push(newLayer());active=1;}
@@ -602,13 +603,10 @@ function render(){
     if(TF&&TF.L===L){vctx.save();vctx.setTransform(T.multiply(tfMatrix()));vctx.imageSmoothingEnabled=true;vctx.drawImage(TF.c,0,0);vctx.restore();}
   }
   vctx.globalAlpha=1;vctx.globalCompositeOperation='source-over';
-  // 끝 가늘게 대기 중인 구간을 선으로 보여 줌 (펜을 떼면 실제 획으로 바뀜)
-  if(S&&S.pend&&S.pend.length&&!S.eraser&&!S.smudge&&!S.shape){vctx.save();vctx.setTransform(T);vctx.globalAlpha=S.opacity;vctx.strokeStyle=curHex();vctx.lineCap='round';vctx.lineJoin='round';
-    let a=S.cl;for(const q of S.pend){vctx.lineWidth=Math.max(.5,radius(S.b,(a.p+q.p)/2)*2);vctx.beginPath();vctx.moveTo(a.x,a.y);vctx.lineTo(q.x,q.y);vctx.stroke();a=q;}vctx.restore();}
   // 끈 보정 안내선
   if(S&&S.penPos&&ST.stabMode==='rope'){const a=toScr(S.sm),b=toScr(S.penPos);vctx.save();vctx.setTransform(DPR,0,0,DPR,0,0);vctx.strokeStyle='rgba(120,128,140,.8)';vctx.lineWidth=1;vctx.setLineDash([3,3]);vctx.beginPath();vctx.moveTo(a.x,a.y);vctx.lineTo(b.x,b.y);vctx.stroke();vctx.setLineDash([]);vctx.beginPath();vctx.arc(b.x,b.y,4,0,7);vctx.stroke();vctx.restore();}
   // 펜이 갈 곳을 미리 그려 지연을 줄임 (다음 프레임에 실제 획으로 바뀜)
-  if(S&&S.pred&&S.pred.length&&!S.eraser&&!S.smudge&&!S.shape){vctx.save();vctx.setTransform(T);vctx.globalAlpha=S.opacity*.9;vctx.strokeStyle=curHex();vctx.lineCap='round';vctx.lineJoin='round';
+  if(ST.predict&&S&&S.pred&&S.pred.length&&!S.eraser&&!S.smudge&&!S.shape){vctx.save();vctx.setTransform(T);vctx.globalAlpha=S.opacity*.9;vctx.strokeStyle=curHex();vctx.lineCap='round';vctx.lineJoin='round';
     vctx.lineWidth=Math.max(.5,radius(S.b,S.last.p)*2);vctx.beginPath();vctx.moveTo(S.last.x,S.last.y);S.pred.forEach(q=>vctx.lineTo(q.x,q.y));vctx.stroke();vctx.restore();}
   if(SEL&&!TF){strokePts(SEL.pts,T,true);if(SEL.invert)strokePts([{x:0,y:0},{x:DOC.w,y:0},{x:DOC.w,y:DOC.h},{x:0,y:DOC.h}],T,true);}
   if(SELD)strokePts(SELD.mode==='rect'?rectPts(SELD.a,SELD.b):SELD.pts,T,SELD.mode==='rect');
@@ -709,8 +707,9 @@ function beginStroke(pt,eraser){
   }else{
     copyInto(work,L.canvas);S.fbb=[1e9,1e9,-1e9,-1e9];
     if(SEL){sctx.save();selClip(sctx);S.clip=true;}
+    if(tailLen()){S.tail=true;cctx.setTransform(1,0,0,1,0,0);cctx.globalCompositeOperation='source-over';cctx.clearRect(0,0,DOC.w,DOC.h);if(SEL){cctx.save();selClip(cctx);S.cclip=true;}S.ctx=cctx;S.pbb=null;}
   }
-  stampAt(pt.x,pt.y,pt.p*taperF(S.b,0));dirty();return true;
+  stampAt(pt.x,pt.y,pt.p*taperF(S.b,0));if(S.tail)syncTail(false);dirty();return true;
 }
 function moveStroke(pt){
   if(S.shape){if(S.shape.type==='line'){S.shape.b={x:pt.x,y:pt.y};drawShape();}return;}
@@ -733,16 +732,27 @@ function moveStroke(pt){
 }
 // 끝 가늘게: 펜 끝 뒤쪽 일정 길이(L)는 바로 찍지 않고 대기(화면엔 미리보기 선) → 펜을 떼면 점점 가늘게 찍음
 function tailLen(){const b=S.b;return b.taperEnd&&!S.smudge?b.taperEnd*b.size*5+4:0;}
-function advance(n){const L=tailLen();if(!L){segment(S.cl,n);S.cl=n;return;}
+function advance(n){if(!S.tail){segment(S.cl,n);S.cl=n;return;}const L=tailLen();
   S.pend.push(n);let len=0,prev=S.cl;for(const q of S.pend){len+=Math.hypot(q.x-prev.x,q.y-prev.y);prev=q;}
-  while(S.pend.length>1&&len>L){const q=S.pend.shift();len-=Math.hypot(q.x-S.cl.x,q.y-S.cl.y);segment(S.cl,q);S.cl=q;}}
-function flushTail(){
-  if(!S.pend||!S.pend.length)return;const L=tailLen()||1;const pts=[S.cl,...S.pend];const rem=new Array(pts.length).fill(0);
-  for(let i=pts.length-2;i>=0;i--)rem[i]=rem[i+1]+Math.hypot(pts[i+1].x-pts[i].x,pts[i+1].y-pts[i].y);
-  const f=r=>{const u=clamp(r/L,0,1);return Math.max(.05,u*(2-u));};
-  const q=pts.map((o,i)=>({x:o.x,y:o.y,p:o.p*(i===0?Math.min(1,f(rem[0])):f(rem[i]))}));
-  for(let i=1;i<q.length;i++)segment(q[i-1],q[i]);S.pend=[];S.cl=q[q.length-1];
+  while(S.pend.length>1&&len>L){const q=S.pend.shift();len-=Math.hypot(q.x-S.cl.x,q.y-S.cl.y);segment(S.cl,q);S.cl=q;}
+  syncTail(false);}
+// 끝 가늘게: 확정된 부분은 cbuf 에 찍고, 펜 끝 뒤 대기 구간은 매번 cbuf 를 바탕으로 같은 브러시로 다시 찍어 strokeBuf 에 보여 줌
+// (미리보기 선이 아니라 실제 스탬프라서 두께가 같음). 펜을 떼면(final) 대기 구간을 가늘어지게 찍음
+function syncTail(final){
+  const pts=[S.cl,...S.pend];let q=pts;
+  if(final){const L=tailLen()||1;const rem=new Array(pts.length).fill(0);
+    for(let i=pts.length-2;i>=0;i--)rem[i]=rem[i+1]+Math.hypot(pts[i+1].x-pts[i].x,pts[i+1].y-pts[i].y);
+    const f=r=>{const u=clamp(r/L,0,1);return Math.max(.05,u*(2-u));};
+    q=pts.map((o,i)=>({x:o.x,y:o.y,p:o.p*(i===0?Math.min(1,f(rem[0])):f(rem[i]))}));}
+  const rMax=radius(S.b,1)*(1+(S.b.tiltW||0)*1.6)+3;let bb=[1e9,1e9,-1e9,-1e9];q.forEach(o=>growBB(bb,o.x,o.y,rMax));
+  const reg=S.pbb?[Math.min(bb[0],S.pbb[0]),Math.min(bb[1],S.pbb[1]),Math.max(bb[2],S.pbb[2]),Math.max(bb[3],S.pbb[3])]:bb;S.pbb=bb;
+  const x=Math.max(0,Math.floor(reg[0])),y=Math.max(0,Math.floor(reg[1])),x2=Math.min(DOC.w,Math.ceil(reg[2])),y2=Math.min(DOC.h,Math.ceil(reg[3]));
+  if(x2>x&&y2>y){sctx.save();sctx.setTransform(1,0,0,1,0,0);sctx.globalAlpha=1;sctx.globalCompositeOperation='source-over';sctx.clearRect(x,y,x2-x,y2-y);sctx.drawImage(cbuf,x,y,x2-x,y2-y,x,y,x2-x,y2-y);sctx.restore();growBB(S.fbb,(x+x2)/2,(y+y2)/2,Math.max(x2-x,y2-y)/2);}
+  const keep={ctx:S.ctx,carry:S.carry,dist:S.dist};S.ctx=sctx;
+  for(let i=1;i<q.length;i++)segment(q[i-1],q[i]);
+  if(final){S.pend=[];S.cl=q[q.length-1];}else{S.ctx=keep.ctx;S.carry=keep.carry;S.dist=keep.dist;}
 }
+function flushTail(){if(S.tail){syncTail(true);S.ctx=sctx;}}
 const convTilt=tl=>{let az=tl.az-V.r*Math.PI/180;if(V.flip)az=Math.PI-az;return{t:tl.t,az};};
 
 /* ---------- 도형 자동 보정: 선 끝에서 펜을 잠깐 멈추면 직선·원·타원·사각형으로 ---------- */
@@ -777,10 +787,10 @@ function drawShape(){
 }
 function trySnap(){
   if(!S||S.shape||S.smudge||S.len<40)return;const sh=fitShape(S.raw);if(!sh)return;
-  sh.p=clamp(S.raw.reduce((a,q)=>a+q.p,0)/S.raw.length,.3,1);S.shape=sh;S.pred=null;S.pend=[];drawShape();
+  sh.p=clamp(S.raw.reduce((a,q)=>a+q.p,0)/S.raw.length,.3,1);S.shape=sh;S.pred=null;S.pend=[];if(S.tail){S.tail=false;S.ctx=sctx;}drawShape();
   toast({line:'직선',rect:'사각형',ellipse:sh.circle?'원':'타원'}[sh.type]+'으로 바꿨어요'+(sh.type==='line'?' · 떼지 않고 움직이면 끝점이 따라와요':''));
 }
-function clearBuf(){if(S&&S.clip)sctx.restore();sctx.setTransform(1,0,0,1,0,0);sctx.clearRect(0,0,DOC.w,DOC.h);}
+function clearBuf(){if(S&&S.clip)sctx.restore();if(S&&S.cclip)cctx.restore();sctx.setTransform(1,0,0,1,0,0);sctx.clearRect(0,0,DOC.w,DOC.h);if(S&&S.tail)cctx.clearRect(0,0,DOC.w,DOC.h);}
 function endStroke(){
   if(!S)return;const L=layers[active];clearTimeout(S.holdT);
   if(S.smudge){if(S.lclip)L.ctx.restore();}
@@ -958,7 +968,7 @@ function startTool(e,sp,eraserBtn){
 }
 function inputMove(e){
   if(mode==='stroke'&&S){const evs=e.getCoalescedEvents?e.getCoalescedEvents():[];for(const ev of(evs.length?evs:[e])){const p=loc(ev);const d=toDoc(p.x,p.y);moveStroke({x:d.x,y:d.y,p:e.pointerType==='touch'?1:pressure(ev),tl:tiltOf(ev),t:ev.timeStamp});}
-    if(S&&e.pointerType==='pen'&&e.getPredictedEvents&&!S.shape){const pr=e.getPredictedEvents();S.pred=pr.length?pr.slice(-3).map(ev=>{const q=loc(ev);return toDoc(q.x,q.y);}):null;}}
+    if(ST.predict&&S&&e.pointerType==='pen'&&e.getPredictedEvents&&!S.shape){const pr=e.getPredictedEvents();S.pred=pr.length?pr.slice(-3).map(ev=>{const q=loc(ev);return toDoc(q.x,q.y);}):null;}}
   else if(mode==='sel'){const p=loc(e);selMove(toDoc(p.x,p.y));}
   else if(mode==='tf'){tfMove(loc(e));}
   dirty();
@@ -1232,12 +1242,13 @@ $('#bExport').onclick=e=>{e.stopPropagation();if(!expPop.hidden){expPop.hidden=t
 [setPop,expPop,brushPop].forEach(p=>p.addEventListener('pointerdown',e=>e.stopPropagation()));
 function closePops(){setPop.hidden=true;expPop.hidden=true;brushPop.hidden=true;if(!wide.matches)side.classList.remove('open');}
 document.addEventListener('pointerdown',e=>{if(!e.target.closest('.pop,#bSet,#bExport,#tBrush,[data-tool]'))[setPop,expPop,brushPop].forEach(p=>p.hidden=true);});
-function syncSettings(){$('#qshape').checked=ST.qshape;$('#stab').value=ST.stab;$('#stabV').textContent=ST.stab;$('#stabMode').value=ST.stabMode;$('#penBtn').value=ST.penBtn;$('#qmenuOn').checked=ST.qmenu;$('#finger').checked=ST.finger;$('#fillAll').checked=ST.fillAll;$('#tol').value=ST.tol;$('#tolV').textContent=ST.tol;}
+function syncSettings(){$('#predict').checked=ST.predict;$('#qshape').checked=ST.qshape;$('#stab').value=ST.stab;$('#stabV').textContent=ST.stab;$('#stabMode').value=ST.stabMode;$('#penBtn').value=ST.penBtn;$('#qmenuOn').checked=ST.qmenu;$('#finger').checked=ST.finger;$('#fillAll').checked=ST.fillAll;$('#tol').value=ST.tol;$('#tolV').textContent=ST.tol;}
 $('#stab').oninput=e=>{ST.stab=+e.target.value;syncSettings();saveSettings();};
 $('#stabMode').onchange=e=>{ST.stabMode=e.target.value;saveSettings();};
 $('#penBtn').onchange=e=>{ST.penBtn=e.target.value;saveSettings();};
 $('#qmenuOn').onchange=e=>{ST.qmenu=e.target.checked;saveSettings();};
 $('#bPen').onclick=()=>{closePops();openPen();};
+$('#predict').onchange=e=>{ST.predict=e.target.checked;saveSettings();};
 $('#qshape').onchange=e=>{ST.qshape=e.target.checked;saveSettings();};
 $('#finger').onchange=e=>{ST.finger=e.target.checked;ST.fingerSet=true;saveSettings();};
 $('#fillAll').onchange=e=>{ST.fillAll=e.target.checked;saveSettings();};
