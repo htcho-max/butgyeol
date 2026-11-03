@@ -121,7 +121,21 @@ input[type=range]{accent-color:var(--accent);width:100%}
 .chk input{width:18px;height:18px;accent-color:var(--accent)}
 .gest{font-size:12px;color:var(--muted);line-height:1.6;border-top:1px solid var(--line);padding-top:10px}
 .gest b{color:var(--fg);font-weight:500}
-#brushPop{width:min(330px,calc(100vw - 100px));left:62px;top:0;gap:10px}
+#brushPop{width:min(360px,calc(100vw - 100px));left:62px;top:0;gap:10px}
+.btabs{display:flex;gap:2px;flex-wrap:wrap}
+.btabs button{height:30px;padding:0 9px;border:1px solid var(--line);border-radius:999px;background:var(--panel);cursor:pointer;font-size:12px;white-space:nowrap}
+.btabs button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.bitem .fav{width:28px;height:28px;flex:none;border:0;background:transparent;border-radius:6px;display:grid;place-items:center;cursor:pointer;color:var(--muted);padding:0}
+.bitem .fav svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linejoin:round}
+.bitem .fav.on{color:#e0a100}.bitem .fav.on svg{fill:currentColor}
+.bitem{position:relative}
+#bActs{display:flex;gap:4px;flex-wrap:wrap}
+#bActs .txtbtn{height:32px;font-size:12px;padding:0 10px}
+#brushEd details{border-top:1px dashed var(--line);padding-top:8px}
+#brushEd summary{cursor:pointer;font-size:12px;color:var(--muted);padding:2px 0 6px}
+#brushEd details[open] summary{color:var(--fg)}
+#brushEd .dgrid{display:flex;flex-direction:column;gap:9px}
+.bempty{font-size:12px;color:var(--muted);padding:6px 2px;line-height:1.5}
 #brushList{display:flex;flex-direction:column;gap:3px}
 .bitem{display:flex;align-items:center;gap:10px;padding:4px 6px;border-radius:10px;border:1px solid transparent;background:transparent;cursor:pointer;text-align:left}
 .bitem:hover{background:var(--panel)}
@@ -327,8 +341,11 @@ input[type=range]{accent-color:var(--accent);width:100%}
 
     <div class="pop" id="brushPop" hidden>
       <h3><span id="bpTitle">브러시</span><button class="txtbtn" id="bpReset" style="height:30px;font-size:12px;font-weight:400">기본값으로</button></h3>
+      <div class="btabs" id="bTabs"></div>
       <div id="brushList"></div>
+      <div id="bActs"></div>
       <div id="brushEd"></div>
+      <input type="file" id="brushFile" accept=".json,application/json" hidden>
     </div>
 
     <div class="pop" id="expPop" hidden>
@@ -449,7 +466,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 <script>
 (()=>{
 "use strict";
-const VERSION='v1.9';
+const VERSION='v2.0';
 const $=s=>document.querySelector(s);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const IN_ARTIFACT=!!window.claude;
@@ -493,6 +510,19 @@ const IC={
  mergeall:"M12 3l8 4.5-8 4.5-8-4.5zM4 11.5l8 4.5 8-4.5M12 18v3.5M9.5 19.5l2.5 2.5 2.5-2.5",
  smudge:"M4 17c3-5 6-5 8-2.5s5 2.5 8-2.5M4 11c3-5 6-5 8-2.5s5 2.5 8-2.5",
  grip:"M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01",
+ brushflat:"M14 3l7 7-6 6-7-7zM8 9l-4 4c-1.5 1.5-1 5 0 6s4.5 1.5 6 0l4-4",
+ sparkle:"M12 3v6M12 15v6M3 12h6M15 12h6M6 6l3 3M15 15l3 3M18 6l-3 3M9 15l-3 3",
+ star:"M12 3l2.6 5.6 6 .7-4.5 4.1 1.3 6-5.4-3.1-5.4 3.1 1.3-6L3.4 9.3l6-.7z",
+ grass:"M4 20c1-5 2-9 4-12M9 20c0-5 1-10 3-15M14 20c0-4 1-8 4-11M19 20c-1-3-1-6 1-9",
+ leaf:"M5 19C5 10 10 5 20 4c-1 10-6 15-15 15zM5 19l9-9",
+ fur:"M4 20c2-6 3-10 3-16M9 20c1-6 2-11 4-16M14 20c1-5 3-9 6-13M19 20c0-3 1-5 2-7",
+ cloud:"M7 18h10a4 4 0 0 0 .5-8A6 6 0 0 0 6 9.5 4.3 4.3 0 0 0 7 18z",
+ tone:"M6 6h.01M12 6h.01M18 6h.01M9 9h.01M15 9h.01M6 12h.01M12 12h.01M18 12h.01M9 15h.01M15 15h.01M6 18h.01M12 18h.01M18 18h.01",
+ blurI:"M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11zM8 14h8M9 17h6",
+ sun:"M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19",
+ moon:"M20 14A8 8 0 1 1 10 4a6.5 6.5 0 0 0 10 10z",
+ neon:"M9 18h6M10 21h4M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z",
+ rainbow:"M3 17a9 9 0 0 1 18 0M6 17a6 6 0 0 1 12 0M9 17a3 3 0 0 1 6 0",
  resize:"M4 9V4h5M4 4l6 6M20 15v5h-5M20 20l-6-6M14 4h6v6M10 20H4v-6"
 };
 const svg=n=>`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[n]}"/></svg>`;
@@ -501,29 +531,61 @@ document.querySelectorAll('.txtbtn [data-i]').forEach(el=>{el.style.display='con
 $('#verTag').textContent=VERSION;
 
 /* ---------- 브러시 ---------- */
-const BR={
- pen:   {size:8,  opacity:1,   hard:.9, sizeP:true, minSize:.1, alphaP:false,flow:1,   spacing:.05,grain:0,  taper:.25},
- ink:   {size:16, opacity:1,   hard:.85,sizeP:true, minSize:.03,alphaP:false,flow:1,   spacing:.04,grain:0,  taper:.7},
- pencil:{size:4,  opacity:.9,  hard:.45,sizeP:true, minSize:.55,alphaP:true, flow:.3,  spacing:.14,grain:.75,taper:0},
- crayon:{size:18, opacity:1,   hard:.6, sizeP:true, minSize:.6, alphaP:true, flow:.4,  spacing:.2, grain:.92,taper:0},
- water: {size:60, opacity:.65, hard:.12,sizeP:true, minSize:.45,alphaP:true, flow:.09, spacing:.1, grain:.2, taper:0},
- air:   {size:90, opacity:1,   hard:0,  sizeP:false,minSize:1,  alphaP:true, flow:.05, spacing:.08,grain:0,  taper:0},
- marker:{size:26, opacity:.55, hard:.82,sizeP:false,minSize:1,  alphaP:false,flow:1,   spacing:.05,grain:0,  taper:0},
- smudge:{size:44, opacity:.75, hard:.25,sizeP:false,minSize:1,  alphaP:true, flow:1,   spacing:.12,grain:0,  taper:0},
- eraser:{size:36, opacity:1,   hard:.7, sizeP:true, minSize:.35,alphaP:false,flow:1,   spacing:.06,grain:0,  taper:0},
+// 브러시: 모든 항목의 기본값(BASE) 위에 브러시마다 다른 값만 적음. cat = 고르기 창 탭, icon = 아이콘 이름
+const BASE={size:10,opacity:1,hard:.9,sizeP:true,minSize:.1,alphaP:false,flow:1,spacing:.05,grain:0,taper:0,taperEnd:0,speed:0,tiltW:0,flat:0,curve:0,
+  tip:'round',scatter:0,count:1,sizeJ:0,angleJ:0,alphaJ:0,hueJ:0,hueRun:0,rotFollow:false,mix:.5,wet:0,blend:'source-over',mode:'paint',tipScale:1,fixColor:''};
+const BPRESETS={
+ pen:    {cat:'ink',name:'펜',icon:'pen',size:8,hard:.9,minSize:.1,taper:.25,taperEnd:.35,speed:.15},
+ ink:    {cat:'ink',name:'붓펜',icon:'ink',size:16,hard:.85,minSize:.03,spacing:.04,taper:.7,taperEnd:.6,speed:.45},
+ gpen:   {cat:'ink',name:'G펜',icon:'pen',size:11,hard:.95,minSize:.02,spacing:.04,taper:.35,taperEnd:.55,speed:.3},
+ maru:   {cat:'ink',name:'마루펜',icon:'pen',size:3,hard:.95,minSize:.3,taper:.2,taperEnd:.3},
+ mono:   {cat:'ink',name:'모노라인',icon:'pen',size:6,hard:.95,sizeP:false,minSize:1,spacing:.04},
+ sign:   {cat:'ink',name:'사인펜',icon:'marker',size:9,opacity:.95,hard:.7,sizeP:false,minSize:1,flow:.9},
+ marker: {cat:'ink',name:'마커',icon:'marker',size:26,opacity:.55,hard:.82,sizeP:false,minSize:1,flat:.55},
+ pencil: {cat:'draw',name:'연필',icon:'pencil',size:4,opacity:.9,hard:.45,minSize:.55,alphaP:true,flow:.3,spacing:.14,grain:.75,tiltW:.8},
+ mech:   {cat:'draw',name:'샤프',icon:'pencil',size:2.2,hard:.7,minSize:.7,alphaP:true,flow:.55,spacing:.12,grain:.4,tiltW:.3},
+ cpencil:{cat:'draw',name:'색연필',icon:'pencil',size:6,hard:.5,minSize:.6,alphaP:true,flow:.35,spacing:.12,grain:.85,tiltW:.7},
+ crayon: {cat:'draw',name:'크레용',icon:'crayon',size:18,hard:.6,minSize:.6,alphaP:true,flow:.4,spacing:.2,grain:.92,tiltW:.6},
+ charcoal:{cat:'draw',name:'목탄',icon:'crayon',size:22,hard:.45,tip:'chalk',minSize:.5,alphaP:true,flow:.35,spacing:.12,grain:.7,tiltW:.7,angleJ:1},
+ pastel: {cat:'draw',name:'파스텔',icon:'crayon',size:30,hard:.3,tip:'chalk',minSize:.6,alphaP:true,flow:.25,spacing:.1,grain:.55,tiltW:.5,angleJ:1},
+ water:  {cat:'paint',name:'수채',icon:'water',size:60,opacity:.65,hard:.12,minSize:.45,alphaP:true,flow:.09,spacing:.1,grain:.2,tiltW:.3},
+ wwet:   {cat:'paint',name:'수채 번짐',icon:'water',size:70,opacity:.6,hard:.25,minSize:.5,alphaP:true,flow:.16,spacing:.08,grain:.15,wet:.75,tiltW:.3},
+ gouache:{cat:'paint',name:'과슈',icon:'brushflat',size:40,opacity:.95,hard:.8,tip:'bristle',minSize:.7,spacing:.06,rotFollow:true},
+ oil:    {cat:'paint',name:'유화',icon:'brushflat',size:40,opacity:.9,hard:.8,tip:'bristle',minSize:.7,alphaP:true,spacing:.08,rotFollow:true,mode:'mix',mix:.5},
+ air:    {cat:'paint',name:'에어브러시',icon:'air',size:90,hard:0,sizeP:false,minSize:1,alphaP:true,flow:.05,spacing:.08,tiltW:.5},
+ wblend: {cat:'paint',name:'물붓',icon:'water',size:50,opacity:.45,hard:.1,sizeP:false,minSize:1,alphaP:true,spacing:.1,mode:'smudge'},
+ smudge: {cat:'paint',name:'문지르기',icon:'smudge',size:44,opacity:.75,hard:.25,sizeP:false,minSize:1,alphaP:true,spacing:.12,mode:'smudge'},
+ spray:  {cat:'tex',name:'스프레이',icon:'air',size:60,hard:1,tip:'speck',tipScale:.06,scatter:1,count:6,sizeJ:.6,sizeP:false,minSize:1,alphaP:true,flow:.8,spacing:.15},
+ sparkle:{cat:'tex',name:'반짝이',icon:'sparkle',size:30,hard:1,tip:'star',scatter:.9,sizeJ:.8,angleJ:.3,alphaJ:.5,hueJ:.08,sizeP:false,minSize:1,spacing:.9},
+ star:   {cat:'tex',name:'별',icon:'star',size:26,hard:1,tip:'star',scatter:.4,sizeJ:.5,angleJ:1,sizeP:false,minSize:1,spacing:1.6},
+ grass:  {cat:'tex',name:'풀',icon:'grass',size:34,hard:1,tip:'blade',scatter:.5,count:2,sizeJ:.5,angleJ:.12,hueJ:.1,sizeP:false,minSize:1,spacing:.25},
+ leaf:   {cat:'tex',name:'나뭇잎',icon:'leaf',size:30,hard:1,tip:'leaf',scatter:.8,sizeJ:.5,angleJ:1,hueJ:.12,alphaJ:.2,sizeP:false,minSize:1,spacing:.5},
+ fur:    {cat:'tex',name:'털',icon:'fur',size:26,hard:1,tip:'hair',rotFollow:true,scatter:.5,count:3,sizeJ:.4,angleJ:.06,alphaJ:.4,sizeP:false,minSize:1,flow:.7,spacing:.12},
+ cloud:  {cat:'tex',name:'구름',icon:'cloud',size:80,hard:0,scatter:.6,count:2,sizeJ:.6,flow:.12,alphaP:true,sizeP:false,minSize:1,spacing:.2},
+ tone:   {cat:'tex',name:'스크린톤',icon:'tone',size:60,hard:.9,tip:'tone',sizeP:false,minSize:1,spacing:.1},
+ blur:   {cat:'fx',name:'흐리게',icon:'blurI',size:50,opacity:.6,hard:.2,alphaP:true,sizeP:false,minSize:1,spacing:.15,mode:'blur'},
+ dodge:  {cat:'fx',name:'밝게 (닷지)',icon:'sun',size:60,opacity:.8,hard:0,flow:.08,alphaP:true,sizeP:false,minSize:1,spacing:.08,blend:'color-dodge',fixColor:'#a8a8a8'},
+ burn:   {cat:'fx',name:'어둡게 (번)',icon:'moon',size:60,opacity:.8,hard:0,flow:.08,alphaP:true,sizeP:false,minSize:1,spacing:.08,blend:'color-burn',fixColor:'#5a5a5a'},
+ neon:   {cat:'fx',name:'네온',icon:'neon',size:24,hard:0,tip:'glow',minSize:.6,flow:.55,spacing:.05,taperEnd:.3},
+ rainbow:{cat:'fx',name:'무지개',icon:'rainbow',size:20,hard:.85,minSize:.3,spacing:.04,hueRun:1},
+ eraser: {cat:'none',name:'지우개',icon:'eraser',size:36,hard:.7,minSize:.35,spacing:.06},
 };
-const BR_EXTRA={pen:{taperEnd:.35,speed:.15},ink:{taperEnd:.6,speed:.45},pencil:{tiltW:.8},crayon:{tiltW:.6},water:{tiltW:.3},air:{tiltW:.5},marker:{flat:.55}};
-for(const k in BR)Object.assign(BR[k],{taperEnd:0,speed:0,tiltW:0,flat:0,curve:0},BR_EXTRA[k]||{});
+const BR={};for(const k in BPRESETS)BR[k]={...BASE,...BPRESETS[k]};
 const DEF=JSON.parse(JSON.stringify(BR));
-const BNAME={pen:'펜',ink:'붓펜',pencil:'연필',crayon:'크레용',water:'수채',air:'에어브러시',marker:'마커',smudge:'문지르기',eraser:'지우개'};
-const PAINT=['pen','ink','pencil','crayon','water','air','marker','smudge'];
-const BRUSH_TOOLS=[...PAINT,'eraser'];
+const BNAME={},PAINT=[],BRUSH_TOOLS=[];
+function refreshBrushes(){PAINT.length=0;BRUSH_TOOLS.length=0;for(const k in BR){BNAME[k]=BR[k].name;if(k!=='eraser')PAINT.push(k);BRUSH_TOOLS.push(k);}}
+refreshBrushes();
+const isDirect=b=>b&&(b.mode==='smudge'||b.mode==='mix'||b.mode==='blur');
+const brushIcon=k=>svg((BR[k]&&IC[BR[k].icon])?BR[k].icon:'pen');
 let tool='pen', lastBrush='pen';
-const ST={stab:3,curve:1,finger:!matchMedia('(pointer: coarse)').matches,fingerSet:false,penSeen:false,fillAll:true,tol:40,selMode:'rect',qshape:true,stabMode:'smooth',penBtn:'eraser',qmenu:true,pLo:0,pHi:0,tiltSeen:false,predict:false};
+const ST={stab:3,curve:1,finger:!matchMedia('(pointer: coarse)').matches,fingerSet:false,penSeen:false,fillAll:true,tol:40,selMode:'rect',favs:['pen','pencil','water','air'],bcat:'',qshape:true,stabMode:'smooth',penBtn:'eraser',qmenu:true,pLo:0,pHi:0,tiltSeen:false,predict:false};
 let color={h:220,s:.15,v:.16};
 let recent=['#1c2029','#ffffff','#e34b3f','#f2a33a','#f5d547','#3fae6a','#2a5bd7','#8a4fd8'];
 try{const s=JSON.parse(localStorage.getItem('bg-settings')||'null'); if(s){Object.assign(ST,s.ST||{}); if(s.recent)recent=s.recent;
-  if(s.br) for(const k in s.br) if(BR[k]) for(const p in s.br[k]) if(p in BR[k]&&typeof s.br[k][p]===typeof BR[k][p]) BR[k][p]=s.br[k][p];
+  if(s.br) for(const k in s.br){const v=s.br[k];if(!v||typeof v!=='object')continue;
+    if(k.startsWith('u_')){const base=DEF[v.base]||DEF.pen;BR[k]={...base,...v,cat:'mine',custom:true};continue;}
+    if(BR[k]) for(const p in v) if(p in BR[k]&&p!=='cat'&&p!=='name'&&p!=='icon'&&typeof v[p]===typeof BR[k][p]) BR[k][p]=v[p];}
+  refreshBrushes();
   if(s.color)color=s.color; if(s.tool&&PAINT.includes(s.tool))tool=lastBrush=s.tool;}}catch(e){}
 function saveSettings(){try{localStorage.setItem('bg-settings',JSON.stringify({ST,recent,br:BR,color,tool:lastBrush}));}catch(e){}}
 
@@ -574,12 +636,30 @@ function dirty(){if(!needs){needs=true;requestAnimationFrame(render);}}
 function composeActive(L){
   const f=S.fbb;if(f[2]>f[0]){
     const x=Math.max(0,Math.floor(f[0])-2),y=Math.max(0,Math.floor(f[1])-2),x2=Math.min(DOC.w,Math.ceil(f[2])+2),y2=Math.min(DOC.h,Math.ceil(f[3])+2),w=x2-x,h=y2-y;
-    if(w>0&&h>0){wctx.globalAlpha=1;wctx.globalCompositeOperation='source-over';wctx.clearRect(x,y,w,h);wctx.drawImage(L.canvas,x,y,w,h,x,y,w,h);
-      wctx.globalAlpha=S.opacity;wctx.globalCompositeOperation=S.eraser?'destination-out':(L.lockAlpha?'source-atop':'source-over');
-      wctx.drawImage(strokeBuf,x,y,w,h,x,y,w,h);wctx.globalAlpha=1;wctx.globalCompositeOperation='source-over';}
+    if(w>0&&h>0){let X=x,Y=y,W=w,H2=h;const wet=S.b.wet&&!S.eraser;let pd=0;
+      // 수채 가장자리: 새 점이 흐림 반경(pd)만큼 주변에 영향 → 그 영역만 다시 그리되, 계산은 pd 더 넓게 해서 경계에 이음매가 안 생기게
+      if(wet){pd=wetPad(S.b);X=Math.max(0,x-pd);Y=Math.max(0,y-pd);W=Math.min(DOC.w,x+w+pd)-X;H2=Math.min(DOC.h,y+h+pd)-Y;}
+      wctx.globalAlpha=1;wctx.globalCompositeOperation='source-over';wctx.clearRect(X,Y,W,H2);wctx.drawImage(L.canvas,X,Y,W,H2,X,Y,W,H2);
+      let src=strokeBuf,sx=X,sy=Y;
+      if(wet){const SX=Math.max(0,X-pd),SY=Math.max(0,Y-pd),SW=Math.min(DOC.w,X+W+pd)-SX,SH=Math.min(DOC.h,Y+H2+pd)-SY;src=wetify(strokeBuf,SX,SY,SW,SH,S.b);sx=X-SX;sy=Y-SY;}
+      drawStroke(wctx,L,src,sx,sy,X,Y,W,H2);}
     S.fbb=[1e9,1e9,-1e9,-1e9];}
   return work;
 }
+const strokeOp=L=>S.eraser?'destination-out':(L.lockAlpha?'source-atop':(S.b.blend||'source-over'));
+// 획을 레이어(또는 화면용 작업 캔버스) 위에 합침. 밝게·어둡게·곱하기 같은 합성 방식은 레이어의 투명도는 그대로 두고 색만 바꿈
+// (그냥 합성하면 반투명한 곳이 더 불투명해져서 밝게 해도 오히려 어두워 보임). 더하기(발광)는 빛이 새로 생기는 효과라 그대로 합성
+const keepAlpha=()=>!S.eraser&&S.b.blend&&S.b.blend!=='source-over'&&S.b.blend!=='lighter';
+function drawStroke(dctx,L,src,sx,sy,x,y,w,h){
+  if(keepAlpha()){const t=mk(w,h),tx=t.getContext('2d');tx.drawImage(L.canvas,x,y,w,h,0,0,w,h);tx.globalAlpha=S.opacity;tx.globalCompositeOperation=S.b.blend;tx.drawImage(src,sx,sy,w,h,0,0,w,h);
+    dctx.save();dctx.globalAlpha=1;dctx.globalCompositeOperation='source-atop';dctx.drawImage(t,x,y);dctx.restore();return;}
+  dctx.save();dctx.globalAlpha=S.opacity;dctx.globalCompositeOperation=strokeOp(L);dctx.drawImage(src,sx,sy,w,h,x,y,w,h);dctx.restore();
+}
+// 수채 가장자리: 획 알파(A)에서 흐린 알파(B)를 빼면 가장자리만 남음 → A를 연하게, 가장자리를 진하게 더함
+const wetPad=b=>Math.ceil(Math.max(2,b.size*.18))*2;
+function wetify(src,x,y,w,h,b){const rb=Math.max(2,b.size*.18),c=mk(w,h),cx=c.getContext('2d'),e=mk(w,h),ex=e.getContext('2d');
+  ex.drawImage(src,x,y,w,h,0,0,w,h);ex.globalCompositeOperation='destination-out';ex.filter=`blur(${rb.toFixed(1)}px)`;ex.drawImage(src,x,y,w,h,0,0,w,h);ex.filter='none';
+  cx.globalAlpha=1-.5*b.wet;cx.drawImage(src,x,y,w,h,0,0,w,h);cx.globalAlpha=Math.min(1,b.wet*1.4);cx.drawImage(e,0,0);return c;}
 function strokePts(pts,T,closed){
   if(!pts||pts.length<2)return;
   vctx.save();vctx.setTransform(T);vctx.beginPath();vctx.moveTo(pts[0].x,pts[0].y);for(let i=1;i<pts.length;i++)vctx.lineTo(pts[i].x,pts[i].y);if(closed)vctx.closePath();
@@ -647,14 +727,30 @@ function drawRecent(){const el=$('#recent');el.innerHTML='';recent.forEach(c=>{c
 
 /* ---------- 브러시 팁 ---------- */
 const stampCache=new Map();
+// 색을 매번 바꿔 찍는 브러시(색 흔들림·무지개), 레이어를 직접 만지는 브러시, 지우개, 스크린톤은 검은 마스크로 만들고 찍을 때 색을 입힘
+const needMask=(name,b)=>name==='eraser'||isDirect(b)||b.hueJ>0||b.hueRun>0||b.tip==='tone';
+function rnd(seed){let t=seed>>>0;return()=>{t=(t*1664525+1013904223)>>>0;return t/4294967296;};}
 function getStamp(name){
-  const b=BR[name];const MASKB=name==='eraser'||name==='smudge';const key=name+'|'+(MASKB?'':curHex())+'|'+b.hard+'|'+b.grain;if(stampCache.has(key))return stampCache.get(key);
-  const N=128,c=mk(N,N),x=c.getContext('2d');const[r,g,bl]=MASKB?[0,0,0]:hsv2rgb(color.h,color.s,color.v);
-  const col=a=>`rgba(${r},${g},${bl},${a})`;const gr=x.createRadialGradient(N/2,N/2,0,N/2,N/2,N/2);
-  if(b.hard<.3){const k=b.hard/.3;gr.addColorStop(0,col(1));gr.addColorStop(.35+.3*k,col(.7+.2*k));gr.addColorStop(.7+.2*k,col(.22));gr.addColorStop(1,col(0));}
-  else{gr.addColorStop(0,col(1));gr.addColorStop(Math.min(.99,b.hard),col(1));gr.addColorStop(1,col(0));}
-  x.fillStyle=gr;x.fillRect(0,0,N,N);
-  if(b.grain){const id=x.getImageData(0,0,N,N),d=id.data;for(let i=3;i<d.length;i+=4){const n=Math.random();d[i]=d[i]*(n<b.grain*.55?n*.4:1);}x.putImageData(id,0,0);}
+  const b=BR[name];const MASKB=needMask(name,b);const key=name+'|'+(MASKB?'':(b.fixColor||curHex()))+'|'+b.hard+'|'+b.grain+'|'+b.tip;if(stampCache.has(key))return stampCache.get(key);
+  const N=128,c=mk(N,N),x=c.getContext('2d');const[r,g,bl]=MASKB?[0,0,0]:b.fixColor?hex2rgb(b.fixColor):hsv2rgb(color.h,color.s,color.v);
+  const col=a=>`rgba(${r},${g},${bl},${a})`;const H=N/2;const R2=rnd(name.length*977+N);
+  const radial=()=>{const gr=x.createRadialGradient(H,H,0,H,H,H);
+    if(b.hard<.3){const k=b.hard/.3;gr.addColorStop(0,col(1));gr.addColorStop(.35+.3*k,col(.7+.2*k));gr.addColorStop(.7+.2*k,col(.22));gr.addColorStop(1,col(0));}
+    else{gr.addColorStop(0,col(1));gr.addColorStop(Math.min(.99,b.hard),col(1));gr.addColorStop(1,col(0));}x.fillStyle=gr;x.fillRect(0,0,N,N);};
+  x.fillStyle=col(1);
+  switch(b.tip){
+    case 'square':x.fillRect(10,10,N-20,N-20);break;
+    case 'speck':x.beginPath();x.arc(H,H,H-4,0,7);x.fill();break;
+    case 'bristle':for(let i=0;i<34;i++){const a=R2()*6.283,d=Math.sqrt(R2())*(H-10);x.fillStyle=col(.45+.55*R2());x.beginPath();x.ellipse(H+Math.cos(a)*d,H+Math.sin(a)*d*.55,3+R2()*6,2+R2()*4,0,0,7);x.fill();}break;
+    case 'chalk':radial();{const id=x.getImageData(0,0,N,N),d=id.data;for(let i=3;i<d.length;i+=4){const n=R2();d[i]=d[i]*(n<.45?n*n*2:1);}x.putImageData(id,0,0);}break;
+    case 'star':x.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?H*.42:H-4;x.lineTo(H+Math.cos(a)*rr,H+Math.sin(a)*rr);}x.closePath();x.fill();break;
+    case 'leaf':x.beginPath();x.moveTo(H,6);x.bezierCurveTo(H+46,34,H+40,92,H,N-6);x.bezierCurveTo(H-40,92,H-46,34,H,6);x.fill();x.globalCompositeOperation='destination-out';x.lineWidth=3;x.beginPath();x.moveTo(H,18);x.lineTo(H,N-14);x.stroke();x.globalCompositeOperation='source-over';break;
+    case 'blade':x.beginPath();x.moveTo(H-7,N-4);x.quadraticCurveTo(H-4,H,H+6,4);x.quadraticCurveTo(H+3,H,H+7,N-4);x.closePath();x.fill();break;
+    case 'hair':{const gr=x.createLinearGradient(0,4,0,N-4);gr.addColorStop(0,col(0));gr.addColorStop(.25,col(1));gr.addColorStop(.8,col(1));gr.addColorStop(1,col(0));x.fillStyle=gr;x.fillRect(H-2.5,4,5,N-8);}break;
+    case 'glow':{const gr=x.createRadialGradient(H,H,0,H,H,H);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.22,'rgba(255,255,255,.95)');gr.addColorStop(.38,col(.9));gr.addColorStop(.7,col(.3));gr.addColorStop(1,col(0));x.fillStyle=gr;x.fillRect(0,0,N,N);}break;
+    default:radial();
+  }
+  if(b.grain&&b.tip!=='chalk'){const id=x.getImageData(0,0,N,N),d=id.data;for(let i=3;i<d.length;i+=4){const n=Math.random();d[i]=d[i]*(n<b.grain*.55?n*.4:1);}x.putImageData(id,0,0);}
   stampCache.set(key,c);return c;
 }
 
@@ -663,25 +759,54 @@ let S=null;
 const radius=(b,p)=>Math.max(.35,b.size/2*(b.sizeP?(b.minSize+(1-b.minSize)*p):1));
 function taperF(b,dist){if(!b.taper)return 1;const L=b.taper*b.size*5+4;return clamp(dist/L,.08,1);}
 const growBB=(bb,x,y,r)=>{if(x-r<bb[0])bb[0]=x-r;if(y-r<bb[1])bb[1]=y-r;if(x+r>bb[2])bb[2]=x+r;if(y+r>bb[3])bb[3]=y+r;};
+const tintC=mk(128,128),tintX=tintC.getContext('2d');
+const toneP=(()=>{const c=mk(8,8),x=c.getContext('2d');x.beginPath();x.arc(4,4,2.1,0,7);x.fill();return c;})();
+function tinted(hex){tintX.globalCompositeOperation='copy';tintX.globalAlpha=1;tintX.drawImage(S.stamp,0,0);tintX.globalCompositeOperation='source-in';tintX.fillStyle=hex;tintX.fillRect(0,0,128,128);tintX.globalCompositeOperation='source-over';return tintC;}
+function stampColor(){const b=S.b;let h=color.h;if(b.hueJ)h+=(Math.random()-.5)*b.hueJ*360;if(b.hueRun)h+=(S.dist+S.carry)*b.hueRun*.6;h=((h%360)+360)%360;return rgb2hex(...hsv2rgb(h,b.hueRun&&color.s<.35?.85:color.s,b.hueRun&&color.v<.35?.95:color.v));}
 function stampAt(x,y,p){
   if(S.smudge){smudgeAt(x,y,p);return;}
-  const b=S.b;let r=radius(b,p);let a=b.flow*(b.alphaP?(.12+.88*p):1);const cx=S.ctx;const tl=S.tl;
+  const b=S.b;let r0=radius(b,p);let a0=b.flow*(b.alphaP?(.12+.88*p):1);const cx=S.ctx;const tl=S.tl;
   // 기울기: 눕힐수록 넓고 연하게, 에어브러시는 기울인 쪽으로 퍼짐
-  if(tl&&b.tiltW&&tl.t>.03){r*=1+b.tiltW*tl.t*1.6;a*=1-b.tiltW*tl.t*.55;if(S.name==='air'){x+=Math.cos(tl.az)*tl.t*r*.5;y+=Math.sin(tl.az)*tl.t*r*.5;}}
-  cx.globalAlpha=clamp(a,0,1);
-  // 납작 붓: 기울기 방향(없으면 고정 각도)으로 눌린 타원 끝
-  if(b.flat){const ang=tl&&tl.t>.05?tl.az+Math.PI/2:-.6;const c=Math.cos(ang),s=Math.sin(ang),q=1-b.flat*.85;cx.setTransform(c,s,-s*q,c*q,x,y);cx.drawImage(S.stamp,-r,-r,2*r,2*r);cx.setTransform(1,0,0,1,0,0);}
-  else if(b.grain){const t=Math.random()*6.283;const c=Math.cos(t),s=Math.sin(t);cx.setTransform(c,s,-s,c,x,y);cx.drawImage(S.stamp,-r,-r,2*r,2*r);cx.setTransform(1,0,0,1,0,0);}
-  else cx.drawImage(S.stamp,x-r,y-r,2*r,2*r);
-  growBB(S.bb,x,y,r);if(S.fbb)growBB(S.fbb,x,y,r);
+  if(tl&&b.tiltW&&tl.t>.03){r0*=1+b.tiltW*tl.t*1.6;a0*=1-b.tiltW*tl.t*.55;if(S.name==='air'){x+=Math.cos(tl.az)*tl.t*r0*.5;y+=Math.sin(tl.az)*tl.t*r0*.5;}}
+  const n=Math.max(1,Math.round(b.count||1));
+  for(let i=0;i<n;i++){
+    let sx=x,sy=y,r=r0,a=a0;
+    if(b.scatter){const d=Math.random()*b.scatter*r0*1.1,t=Math.random()*6.283;sx+=Math.cos(t)*d;sy+=Math.sin(t)*d;}
+    if(b.sizeJ)r*=1-b.sizeJ*Math.random()*.85;
+    if(b.alphaJ)a*=1-b.alphaJ*Math.random();
+    r=Math.max(.35,r*(b.tipScale||1));
+    let img=S.stamp;
+    if(S.tint)img=tinted(stampColor());
+    else if(b.tip==='tone'){const D=Math.ceil(2*r)+2,ox=Math.floor(sx-r),oy=Math.floor(sy-r);const t=S.toneC.getContext('2d');t.globalCompositeOperation='copy';t.setTransform(1,0,0,1,-ox,-oy);t.fillStyle=S.toneFill;t.fillRect(ox,oy,D,D);
+      t.setTransform(1,0,0,1,0,0);t.globalCompositeOperation='destination-in';t.drawImage(S.stamp,0,0,D,D);t.globalCompositeOperation='source-over';
+      cx.globalAlpha=clamp(a,0,1);cx.drawImage(S.toneC,0,0,D,D,ox,oy,D,D);growBB(S.bb,sx,sy,r+1);if(S.fbb)growBB(S.fbb,sx,sy,r+1);continue;}
+    cx.globalAlpha=clamp(a,0,1);
+    // 회전: 획 방향 따라 / 각도 흔들림 / 납작 붓(기울기 방향) / 질감은 무작위
+    let ang=0,q=1,rot=false;
+    if(b.rotFollow){ang=S.dir+Math.PI/2;rot=true;}
+    if(b.flat){ang=b.rotFollow?ang:(tl&&tl.t>.05?tl.az+Math.PI/2:-.6);q=1-b.flat*.85;rot=true;}
+    if(b.angleJ){ang+=(Math.random()-.5)*2*Math.PI*b.angleJ;rot=true;}
+    if(!rot&&b.grain){ang=Math.random()*6.283;rot=true;}
+    if(rot){const c=Math.cos(ang),s=Math.sin(ang);cx.setTransform(c,s,-s*q,c*q,sx,sy);cx.drawImage(img,-r,-r,2*r,2*r);cx.setTransform(1,0,0,1,0,0);}
+    else cx.drawImage(img,sx-r,sy-r,2*r,2*r);
+    growBB(S.bb,sx,sy,r);if(S.fbb)growBB(S.fbb,sx,sy,r);
+  }
 }
 // 문지르기: 붓에 묻은 색(sm)을 새 자리에 내려놓고, 그 자리 색을 조금씩 다시 묻혀 감
 function smudgeAt(x,y,p){
   const b=S.b,r=Math.max(1,b.size/2),D=S.D,T=S.tctx,tc=S.tcanvas,ox=Math.round(x-D/2),oy=Math.round(y-D/2);
   const bx=S.smX,mx=S.mkX;
-  if(!S.smReady){bx.clearRect(0,0,D,D);bx.drawImage(tc,ox,oy,D,D,0,0,D,D);S.smReady=true;growBB(S.bb,x,y,r);return;}
+  if(!S.smReady){bx.clearRect(0,0,D,D);bx.drawImage(tc,ox,oy,D,D,0,0,D,D);if(b.mode==='mix'){bx.globalAlpha=clamp(1-b.mix,.05,1);bx.fillStyle=curHex();bx.fillRect(0,0,D,D);bx.globalAlpha=1;}S.smReady=true;growBB(S.bb,x,y,r);if(b.mode!=='blur')return;}
   const k=clamp(b.opacity*(b.alphaP?(.25+.75*p):1),0,1);
-  mx.globalCompositeOperation='copy';mx.globalAlpha=1;mx.drawImage(S.smC,0,0);mx.globalCompositeOperation='destination-in';mx.drawImage(S.stamp,0,0,D,D);
+  if(b.mode==='blur'){
+    // 흐리게: 붓 아래를 흐리게 만든 뒤 부드러운 붓 모양으로 덮음
+    mx.globalCompositeOperation='copy';mx.globalAlpha=1;mx.filter=`blur(${Math.max(1,r*.22).toFixed(1)}px)`;mx.drawImage(tc,ox,oy,D,D,0,0,D,D);mx.filter='none';
+    mx.globalCompositeOperation='destination-in';mx.drawImage(S.stamp,0,0,D,D);
+    T.save();T.globalAlpha=k;T.globalCompositeOperation=S.lock?'source-atop':'source-over';T.drawImage(S.mkC,ox,oy);T.restore();growBB(S.bb,x,y,r);return;}
+  // 유화(색 섞기): 붓에 묻은 색 쪽으로 물감 색을 (1-섞기) 만큼 더함
+  if(b.mode==='mix'){bx.globalCompositeOperation='source-over';bx.globalAlpha=clamp(1-b.mix,0,1)*.6;bx.fillStyle=curHex();bx.fillRect(0,0,D,D);bx.globalAlpha=1;}
+  mx.globalCompositeOperation='copy';mx.globalAlpha=1;mx.drawImage(S.smC,0,0);mx.globalCompositeOperation='destination-in';
+  if(b.rotFollow){const c=Math.cos(S.dir+Math.PI/2),s2=Math.sin(S.dir+Math.PI/2);mx.setTransform(c,s2,-s2,c,D/2,D/2);mx.drawImage(S.stamp,-D/2,-D/2,D,D);mx.setTransform(1,0,0,1,0,0);}else mx.drawImage(S.stamp,0,0,D,D);
   T.save();T.globalAlpha=k;T.globalCompositeOperation=S.lock?'source-atop':'source-over';T.drawImage(S.mkC,ox,oy);T.restore();
   bx.globalAlpha=1-k*.85;bx.globalCompositeOperation='source-over';bx.drawImage(tc,ox,oy,D,D,0,0,D,D);bx.globalAlpha=1;
   growBB(S.bb,x,y,r);
@@ -689,6 +814,7 @@ function smudgeAt(x,y,p){
 function segment(a,b){
   const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy);let t=S.carry;
   if(d===0)return;
+  S.dir=Math.atan2(dy,dx);
   while(t<=d){const k=t/d;const p=(a.p+(b.p-a.p)*k)*taperF(S.b,S.dist+t);stampAt(a.x+dx*k,a.y+dy*k,p);t+=Math.max(.4,radius(S.b,p)*2*S.b.spacing);}
   S.carry=t-d;S.dist+=d;
 }
@@ -700,8 +826,10 @@ function beginStroke(pt,eraser){
   sctx.setTransform(1,0,0,1,0,0);sctx.globalCompositeOperation='source-over';sctx.clearRect(0,0,DOC.w,DOC.h);
   pt={...pt,p:curveP(pt.p,BR[name])};
   S={name,b:BR[name],eraser,ctx:sctx,stamp:getStamp(name),opacity:BR[name].opacity,last:{...pt},sm:{...pt},cl:{...pt},pend:[],v:0,tl:pt.tl?convTilt(pt.tl):null,carry:0,dist:0,bb:[1e9,1e9,-1e9,-1e9],t0:performance.now(),clip:false,raw:[{...pt}],len:0,pred:null,shape:null};
-  if(name==='smudge'){
-    const D=Math.ceil(Math.max(2,BR.smudge.size))+2;S.smudge=true;S.D=D;S.tctx=L.ctx;S.tcanvas=L.canvas;S.lock=L.lockAlpha;
+  S.dir=0;S.tint=needMask(name,BR[name])&&!eraser&&!isDirect(BR[name])&&BR[name].tip!=='tone';
+  if(BR[name].tip==='tone'){S.toneC=mk(Math.ceil(BR[name].size*1.2)+4,Math.ceil(BR[name].size*1.2)+4);const tp=mk(8,8),tx=tp.getContext('2d');tx.fillStyle=curHex();tx.beginPath();tx.arc(4,4,2.1,0,7);tx.fill();S.toneFill=S.toneC.getContext('2d').createPattern(tp,'repeat');}
+  if(isDirect(BR[name])&&!eraser){
+    const D=Math.ceil(Math.max(2,BR[name].size))+2;S.smudge=true;S.D=D;S.tctx=L.ctx;S.tcanvas=L.canvas;S.lock=L.lockAlpha;
     S.smC=mk(D,D);S.smX=S.smC.getContext('2d');S.mkC=mk(D,D);S.mkX=S.mkC.getContext('2d');S.smReady=false;
     if(SEL){L.ctx.save();selClip(L.ctx);S.lclip=true;}
   }else{
@@ -794,11 +922,12 @@ function clearBuf(){if(S&&S.clip)sctx.restore();if(S&&S.cclip)cctx.restore();sct
 function endStroke(){
   if(!S)return;const L=layers[active];clearTimeout(S.holdT);
   if(S.smudge){if(S.lclip)L.ctx.restore();}
-  else{if(!S.shape)flushTail();L.ctx.globalAlpha=S.opacity;L.ctx.globalCompositeOperation=S.eraser?'destination-out':(L.lockAlpha?'source-atop':'source-over');
-    L.ctx.drawImage(strokeBuf,0,0);L.ctx.globalAlpha=1;L.ctx.globalCompositeOperation='source-over';}
+  else{if(!S.shape)flushTail();
+    const wet=S.b.wet&&!S.eraser,pd=wet?wetPad(S.b):2,bb=S.bb,x=Math.max(0,Math.floor(bb[0])-pd),y=Math.max(0,Math.floor(bb[1])-pd),x2=Math.min(DOC.w,Math.ceil(bb[2])+pd),y2=Math.min(DOC.h,Math.ceil(bb[3])+pd);
+    if(x2>x&&y2>y){const src=wet?wetify(strokeBuf,x,y,x2-x,y2-y,S.b):strokeBuf;drawStroke(L.ctx,L,src,wet?0:x,wet?0:y,x,y,x2-x,y2-y);if(wet)growBB(S.bb,(x+x2)/2,(y+y2)/2,Math.max(x2-x,y2-y)/2);}}
   const bb=S.bb;const x=Math.max(0,Math.floor(bb[0])-2),y=Math.max(0,Math.floor(bb[1])-2),x2=Math.min(DOC.w,Math.ceil(bb[2])+2),y2=Math.min(DOC.h,Math.ceil(bb[3])+2);
   if(x2>x&&y2>y)pushPx(L,x,y,x2-x,y2-y,beforeC);
-  if(!S.eraser&&!S.smudge)pushRecent();
+  if(!S.eraser&&!S.smudge&&!S.b.fixColor)pushRecent();
   clearBuf();S=null;thumb(L);dirty();changed();
 }
 function cancelStroke(){if(S){clearTimeout(S.holdT);if(S.smudge){const L=layers[active];if(S.lclip)L.ctx.restore();copyInto(L.canvas,beforeC);}}clearBuf();S=null;dirty();}
@@ -1114,7 +1243,7 @@ function setTool(t){
   if(TF&&t!=='select')commitTF();
   if(t!=='select'&&SELD)SELD=null;
   tool=t;if(PAINT.includes(t))lastBrush=t;
-  const tb=$('#tBrush');tb.innerHTML=svg(lastBrush)+'<span class="dot"></span>';tb.classList.toggle('on',PAINT.includes(tool));tb.title=BNAME[lastBrush]+' (B) · 한 번 더 누르면 브러시 고르기';
+  const tb=$('#tBrush');tb.innerHTML=brushIcon(lastBrush)+'<span class="dot"></span>';tb.classList.toggle('on',PAINT.includes(tool));tb.title=BNAME[lastBrush]+' (B) · 한 번 더 누르면 브러시 고르기';
   document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('on',b.dataset.tool===t));
   sizeSl.update();opSl.update();updBars();saveSettings();dirty();
 }
@@ -1128,37 +1257,83 @@ function drawPreview(name,c){
   const r=c.getBoundingClientRect();const W=Math.max(60,Math.round((r.width||200)*1.5)),H=60;c.width=W;c.height=H;
   const x=c.getContext('2d');x.clearRect(0,0,W,H);const tmp=mk(W,H),tx=tmp.getContext('2d');
   const b=BR[name];const sz=clamp(b.size,2,H*.55);const save=S;
-  S={b:{...b,size:sz},ctx:tx,stamp:getStamp(name),carry:0,dist:0,bb:[0,0,0,0]};
-  if(name==='smudge'){const cols=[curHex(),'#f2a33a','#2a5bd7'];cols.forEach((c,i)=>{tx.fillStyle=c;tx.fillRect(0,i*H/3,W,H/3+1);});
+  const bb2={...b,size:sz};S={name,b:bb2,ctx:tx,stamp:getStamp(name),carry:0,dist:0,dir:0,bb:[0,0,0,0],tint:needMask(name,b)&&name!=='eraser'&&!isDirect(b)&&b.tip!=='tone'};
+  if(b.tip==='tone'){S.toneC=mk(Math.ceil(sz*1.2)+4,Math.ceil(sz*1.2)+4);const tp=mk(8,8),t2=tp.getContext('2d');t2.fillStyle=curHex();t2.beginPath();t2.arc(4,4,2.1,0,7);t2.fill();S.toneFill=S.toneC.getContext('2d').createPattern(tp,'repeat');}
+  const stripes=isDirect(b)||(b.blend&&b.blend!=='source-over');
+  if(isDirect(b)){const cols=[curHex(),'#f2a33a','#2a5bd7'];cols.forEach((c,i)=>{tx.fillStyle=c;tx.fillRect(0,i*H/3,W,H/3+1);});
     const D=Math.ceil(sz)+2;Object.assign(S,{smudge:true,D,tctx:tx,tcanvas:tmp,lock:false,smC:mk(D,D),mkC:mk(D,D),smReady:false});S.smX=S.smC.getContext('2d');S.mkX=S.mkC.getContext('2d');}
   let last=null;const N=48;for(let i=0;i<=N;i++){const k=i/N;const pt={x:sz/2+6+k*(W-sz-12),y:H/2+Math.sin(k*Math.PI*2)*H*.2,p:.15+.85*Math.sin(k*Math.PI)};
     if(!last)stampAt(pt.x,pt.y,pt.p*taperF(S.b,0));else segment(last,pt);last=pt;}
-  S=save;x.globalAlpha=name==='eraser'?.5:name==='smudge'?1:b.opacity;x.drawImage(tmp,0,0);x.globalAlpha=1;
+  S=save;
+  if(stripes&&!isDirect(b)){const cols=['#3a6fb0','#e9a23b','#7a4bb8'];cols.forEach((c,i)=>{x.fillStyle=c;x.fillRect(0,i*H/3,W,H/3+1);});x.globalCompositeOperation=b.blend;}
+  x.globalAlpha=name==='eraser'?.5:isDirect(b)?1:b.opacity;x.drawImage(b.wet?wetify(tmp,0,0,W,H,bb2):tmp,0,0);x.globalAlpha=1;x.globalCompositeOperation='source-over';
 }
 function drawPreviews(){brushPop.querySelectorAll('canvas[data-b]').forEach(c=>drawPreview(c.dataset.b,c));}
+const BCATS=[['fav','즐겨찾기'],['ink','잉크'],['draw','드로잉'],['paint','칠하기'],['tex','질감'],['fx','효과'],['mine','내 브러시']];
+const pctF=v=>Math.round(v*100)+'%';
 function buildBrushPop(){
-  const name=bpEraser?'eraser':lastBrush;
+  const name=bpEraser?'eraser':lastBrush;const B=BR[name];
   $('#bpTitle').textContent=bpEraser?'지우개 설정':'브러시';
-  const list=$('#brushList');list.innerHTML='';list.hidden=bpEraser;
-  if(!bpEraser)PAINT.forEach(n=>{const b=document.createElement('button');b.className='bitem'+(n===lastBrush?' on':'');b.innerHTML=`<b>${BNAME[n]}</b><canvas data-b="${n}"></canvas>`;
-    b.onclick=()=>{setTool(n);buildBrushPop();};list.appendChild(b);});
-  const ed=$('#brushEd');const B=BR[name];
-  const rows=[['hard','가장자리 선명도',0,1,.01,v=>Math.round(v*100)+'%'],['flow','한 번에 묻는 양',.01,1,.01,v=>Math.round(v*100)+'%'],['spacing','점 간격',.02,1,.01,v=>Math.round(v*100)+'%'],
-    ['minSize','가장 가늘 때',0,1,.01,v=>Math.round(v*100)+'%'],['grain','종이 질감',0,1,.01,v=>Math.round(v*100)+'%'],['taper','시작을 가늘게',0,1,.01,v=>Math.round(v*100)+'%'],
-    ['taperEnd','끝을 가늘게',0,1,.01,v=>Math.round(v*100)+'%'],['speed','빠르면 가늘게',0,1,.01,v=>Math.round(v*100)+'%'],['tiltW','기울이면 넓고 연하게',0,1,.01,v=>Math.round(v*100)+'%'],['flat','납작 붓',0,1,.01,v=>Math.round(v*100)+'%']].filter(r=>name!=='smudge'||!['taperEnd','speed','flat','tiltW'].includes(r[0]));
-  ed.innerHTML=`<div style="font-size:12px;color:var(--muted)">${BNAME[name]} 세부 설정</div>`+(bpEraser?`<canvas data-b="eraser" style="width:100%;height:40px"></canvas>`:'')+
-    rows.map(([k,l,mn,mx,st])=>`<label class="erow"><span>${l}</span><input type="range" id="be-${k}" min="${mn}" max="${mx}" step="${st}" value="${B[k]}"><span id="bev-${k}"></span></label>`).join('')+
-    `<label class="chk"><input type="checkbox" id="be-sizeP" ${B.sizeP?'checked':''}> 필압으로 굵기 바꾸기</label><label class="chk"><input type="checkbox" id="be-alphaP" ${B.alphaP?'checked':''}> 필압으로 농도 바꾸기</label>`+
-    `<label class="erow" style="grid-template-columns:112px 1fr"><span>필압 곡선</span><select id="be-curve" style="height:30px;border-radius:8px;border:1px solid var(--line);background:var(--panel)"><option value="0">펜 설정 따르기</option><option value="0.6">부드럽게</option><option value="1">보통</option><option value="1.7">단단하게</option></select></label>`+
+  const tabs=$('#bTabs'),list=$('#brushList'),acts=$('#bActs');tabs.innerHTML='';list.innerHTML='';acts.innerHTML='';
+  tabs.hidden=list.hidden=acts.hidden=bpEraser;
+  if(!bpEraser){
+    if(!ST.bcat)ST.bcat=B.cat||'ink';
+    BCATS.forEach(([k,l])=>{const t=document.createElement('button');t.textContent=l;t.className=ST.bcat===k?'on':'';t.onclick=()=>{ST.bcat=k;saveSettings();buildBrushPop();};tabs.appendChild(t);});
+    const ids=PAINT.filter(n=>ST.bcat==='fav'?ST.favs.includes(n):BR[n].cat===ST.bcat);
+    ids.forEach(n=>{const b=document.createElement('div');b.className='bitem'+(n===lastBrush?' on':'');b.setAttribute('role','button');b.tabIndex=0;
+      b.innerHTML=`<b></b><canvas data-b="${n}"></canvas><button class="fav${ST.favs.includes(n)?' on':''}" aria-label="즐겨찾기">${svg('star')}</button>`;b.querySelector('b').textContent=BR[n].name;
+      b.onclick=()=>{setTool(n);buildBrushPop();};b.onkeydown=e=>{if(e.key==='Enter')b.click();};
+      b.querySelector('.fav').onclick=e=>{e.stopPropagation();const i=ST.favs.indexOf(n);if(i>=0)ST.favs.splice(i,1);else ST.favs.push(n);saveSettings();buildBrushPop();};
+      list.appendChild(b);});
+    if(!ids.length){const p=document.createElement('div');p.className='bempty';p.textContent=ST.bcat==='fav'?'브러시 옆 별을 누르면 여기에 모여요.':'아직 내 브러시가 없어요. 아무 브러시나 고른 뒤 "복제해서 내 브러시로"를 누르면 설정을 바꿔 저장할 수 있어요.';list.appendChild(p);}
+    const act=(label,fn)=>{const t=document.createElement('button');t.className='txtbtn line';t.textContent=label;t.onclick=fn;acts.appendChild(t);};
+    act('복제해서 내 브러시로',()=>dupBrush(name));
+    if(B.custom){act('이름 바꾸기',async()=>{const v=await ask('브러시 이름','',{input:B.name,yes:'바꾸기'});if(v){B.name=v.slice(0,20);refreshBrushes();saveSettings();setTool(name);buildBrushPop();}});
+      act('삭제',async()=>{if(!await ask(`'${B.name}' 삭제`,'지운 브러시는 되살릴 수 없어요.',{yes:'삭제',danger:true}))return;delete BR[name];ST.favs=ST.favs.filter(f=>f!==name);refreshBrushes();saveSettings();setTool('pen');buildBrushPop();});}
+    if(ST.bcat==='mine'){act('내 브러시 내보내기',exportBrushes);act('가져오기',()=>$('#brushFile').click());}
+  }
+  const ed=$('#brushEd');const dir=isDirect(B);
+  const basic=[['hard','가장자리 선명도',0,1,.01,pctF],['flow','한 번에 묻는 양',.01,1,.01,pctF],['spacing','점 간격',.02,2,.01,pctF],
+    ['minSize','가장 가늘 때',0,1,.01,pctF],['grain','종이 질감',0,1,.01,pctF],['taper','시작을 가늘게',0,1,.01,pctF],
+    ['taperEnd','끝을 가늘게',0,1,.01,pctF],['speed','빠르면 가늘게',0,1,.01,pctF],['tiltW','기울이면 넓고 연하게',0,1,.01,pctF],['flat','납작 붓',0,1,.01,pctF]].filter(r=>!dir||!['taperEnd','speed','flat','tiltW','flow','grain','taper'].includes(r[0]));
+  const adv=[['scatter','흩뿌리기',0,1,.01,pctF],['count','한 번에 찍는 수',1,8,1,v=>v+'개'],['tipScale','입자 크기',.02,1,.01,pctF],['sizeJ','크기 흔들림',0,1,.01,pctF],['angleJ','각도 흔들림',0,1,.01,pctF],
+    ['alphaJ','농도 흔들림',0,1,.01,pctF],['hueJ','색 흔들림',0,1,.01,pctF],['hueRun','무지개 변화',0,2,.01,pctF],['wet','수채 가장자리',0,1,.01,pctF]].filter(r=>!dir&&!bpEraser||r[0]==='x');
+  if(B.mode==='mix')adv.push(['mix','아래 색 섞기',0,1,.01,pctF]);
+  const row=([k,l,mn,mx,st])=>`<label class="erow"><span>${l}</span><input type="range" id="be-${k}" min="${mn}" max="${mx}" step="${st}" value="${B[k]}"><span id="bev-${k}"></span></label>`;
+  const sel=(id,label,opts,val)=>`<label class="erow" style="grid-template-columns:112px 1fr"><span>${label}</span><select id="${id}" style="height:30px;border-radius:8px;border:1px solid var(--line);background:var(--panel)">${opts.map(([v,t])=>`<option value="${v}"${String(v)===String(val)?' selected':''}>${t}</option>`).join('')}</select></label>`;
+  const TIPS=[['round','동그라미'],['square','네모'],['bristle','붓털'],['chalk','거친 분필'],['speck','작은 점'],['star','별'],['leaf','나뭇잎'],['blade','풀잎'],['hair','털 한 가닥'],['glow','빛나는 점'],['tone','스크린톤']];
+  const BBL=[['source-over','보통'],['multiply','곱하기'],['screen','스크린'],['overlay','오버레이'],['color-dodge','밝게 (닷지)'],['color-burn','어둡게 (번)'],['lighter','더하기 (발광)'],['soft-light','소프트 라이트']];
+  ed.innerHTML=`<div style="font-size:12px;color:var(--muted)">${BNAME[name]} 세부 설정${B.custom?' · 내 브러시':''}</div>`+(bpEraser?`<canvas data-b="eraser" style="width:100%;height:40px"></canvas>`:'')+
+    basic.map(row).join('')+
+    `<label class="chk"><input type="checkbox" id="be-sizeP" ${B.sizeP?'checked':''}> 필압으로 굵기 바꾸기</label><label class="chk"><input type="checkbox" id="be-alphaP" ${B.alphaP?'checked':''}> 필압으로 ${dir?'세기':'농도'} 바꾸기</label>`+
+    sel('be-curve','필압 곡선',[[0,'펜 설정 따르기'],[0.6,'부드럽게'],[1,'보통'],[1.7,'단단하게']],B.curve||0)+
+    (dir||bpEraser?(adv.length?`<details><summary>모양·흩뿌리기·효과</summary><div class="dgrid">${adv.map(row).join('')}</div></details>`:''):
+    `<details${(B.tip!=='round'||B.scatter||B.hueJ||B.hueRun||B.wet||B.blend!=='source-over')?' open':''}><summary>모양·흩뿌리기·효과</summary><div class="dgrid">`+
+      sel('be-tip','붓 끝 모양',TIPS,B.tip)+`<label class="chk"><input type="checkbox" id="be-rot" ${B.rotFollow?'checked':''}> 붓 끝을 획 방향으로 돌리기</label>`+adv.map(row).join('')+sel('be-blend','합성 방식',BBL,B.blend)+`</div></details>`)+
+    (B.blend&&B.blend!=='source-over'&&!bpEraser?`<div class="hint" style="font-size:11px;color:var(--muted)">합성 방식이 바뀐 브러시는 그림이 있는 레이어에서 써야 효과가 보여요</div>`:'')+
     (ST.tiltSeen?'':`<div class="hint" style="font-size:11px;color:var(--muted)">기울기·납작 붓 방향은 펜이 기울기 값을 보낼 때만 쓰여요. 설정 → 펜 설정에서 확인할 수 있어요</div>`);
   const changedB=()=>{stampCache.clear();drawPreviews();saveSettings();sizeSl.update();opSl.update();};
-  rows.forEach(([k,,,,,f])=>{const i=$('#be-'+k),v=$('#bev-'+k);v.textContent=f(B[k]);i.oninput=()=>{B[k]=+i.value;v.textContent=f(B[k]);changedB();};});
+  [...basic,...adv].forEach(([k,,,,,f])=>{const i=$('#be-'+k),v=$('#bev-'+k);if(!i)return;v.textContent=f(B[k]);i.oninput=()=>{B[k]=+i.value;v.textContent=f(B[k]);changedB();};});
   $('#be-sizeP').onchange=e=>{B.sizeP=e.target.checked;changedB();};
   $('#be-alphaP').onchange=e=>{B.alphaP=e.target.checked;changedB();};
-  const bc=$('#be-curve');bc.value=String(B.curve||0);if(bc.selectedIndex<0)bc.value='0';bc.onchange=()=>{B.curve=+bc.value;changedB();};
-  $('#bpReset').onclick=()=>{BR[name]=JSON.parse(JSON.stringify(DEF[name]));buildBrushPop();changedB();toast(BNAME[name]+' 설정을 처음으로 되돌렸어요');};
+  $('#be-curve').onchange=e=>{B.curve=+e.target.value;changedB();};
+  if($('#be-tip'))$('#be-tip').onchange=e=>{B.tip=e.target.value;changedB();};
+  if($('#be-rot'))$('#be-rot').onchange=e=>{B.rotFollow=e.target.checked;changedB();};
+  if($('#be-blend'))$('#be-blend').onchange=e=>{B.blend=e.target.value;changedB();};
+  $('#bpReset').onclick=()=>{const keep={name:B.name,cat:B.cat,icon:B.icon,custom:B.custom,base:B.base};BR[name]=B.custom?{...JSON.parse(JSON.stringify(DEF[B.base]||DEF.pen)),...keep}:JSON.parse(JSON.stringify(DEF[name]));
+    refreshBrushes();buildBrushPop();changedB();toast(BNAME[name]+' 설정을 처음으로 되돌렸어요');};
   requestAnimationFrame(drawPreviews);
 }
+function dupBrush(src){const B=BR[src];const id='u_'+Date.now().toString(36);const base=B.custom?B.base:src;
+  BR[id]={...JSON.parse(JSON.stringify(B)),name:(B.name+' 복사').slice(0,20),cat:'mine',custom:true,base};refreshBrushes();ST.bcat='mine';saveSettings();setTool(id);buildBrushPop();toast('내 브러시로 복제했어요. 아래 설정을 바꾸면 바로 저장돼요');}
+function exportBrushes(){const out={};for(const k in BR)if(BR[k].custom)out[k]=BR[k];if(!Object.keys(out).length){toast('내보낼 내 브러시가 없어요');return;}
+  saveFile('붓결-내브러시.json',JSON.stringify({app:'butgyeol-brushes',v:1,brushes:out}));}
+$('#brushFile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{const o=JSON.parse(await f.text());if(o.app!=='butgyeol-brushes'||!o.brushes)throw 0;let n=0;
+    for(const k in o.brushes){const v=o.brushes[k];const base=DEF[v.base]?v.base:'pen';const id='u_'+Date.now().toString(36)+(n++);
+      const clean={};for(const p in BASE)if(typeof v[p]===typeof BASE[p])clean[p]=v[p];BR[id]={...DEF[base],...clean,name:String(v.name||'가져온 브러시').slice(0,20),icon:DEF[base].icon,cat:'mine',custom:true,base};}
+    refreshBrushes();saveSettings();ST.bcat='mine';buildBrushPop();toast(`브러시 ${n}개를 가져왔어요`);}
+  catch(err){toast('붓결 브러시 파일(.json)이 아니에요');}};
 
 /* ---------- 레이어 패널 ---------- */
 const BLENDS=[['source-over','보통'],['multiply','곱하기'],['screen','스크린'],['overlay','오버레이'],['darken','어둡게'],['lighten','밝게'],['color-dodge','닷지(밝게)'],['color-burn','번(어둡게)'],['soft-light','소프트 라이트'],['hard-light','하드 라이트'],['lighter','더하기(발광)'],['difference','차이'],['hue','색조'],['saturation','채도'],['color','색상'],['luminosity','광도']];
@@ -1241,7 +1416,7 @@ $('#bSet').onclick=e=>{e.stopPropagation();if(!setPop.hidden){setPop.hidden=true
 $('#bExport').onclick=e=>{e.stopPropagation();if(!expPop.hidden){expPop.hidden=true;return;}closePops();expPop.hidden=false;};
 [setPop,expPop,brushPop].forEach(p=>p.addEventListener('pointerdown',e=>e.stopPropagation()));
 function closePops(){setPop.hidden=true;expPop.hidden=true;brushPop.hidden=true;if(!wide.matches)side.classList.remove('open');}
-document.addEventListener('pointerdown',e=>{if(!e.target.closest('.pop,#bSet,#bExport,#tBrush,[data-tool]'))[setPop,expPop,brushPop].forEach(p=>p.hidden=true);});
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('.pop,#bSet,#bExport,#tBrush,[data-tool],.scrim'))[setPop,expPop,brushPop].forEach(p=>p.hidden=true);});
 function syncSettings(){$('#predict').checked=ST.predict;$('#qshape').checked=ST.qshape;$('#stab').value=ST.stab;$('#stabV').textContent=ST.stab;$('#stabMode').value=ST.stabMode;$('#penBtn').value=ST.penBtn;$('#qmenuOn').checked=ST.qmenu;$('#finger').checked=ST.finger;$('#fillAll').checked=ST.fillAll;$('#tol').value=ST.tol;$('#tolV').textContent=ST.tol;}
 $('#stab').oninput=e=>{ST.stab=+e.target.value;syncSettings();saveSettings();};
 $('#stabMode').onchange=e=>{ST.stabMode=e.target.value;saveSettings();};
@@ -1464,7 +1639,7 @@ function openQM(sp){
   const add=(ang,rad,html,cls,fn,tip)=>{const b=document.createElement('button');b.className=cls||'';b.style.left=(110+Math.cos(ang)*rad)+'px';b.style.top=(110+Math.sin(ang)*rad)+'px';b.innerHTML=html;if(tip)b.setAttribute('aria-label',tip);
     b.addEventListener('pointerup',ev=>{ev.stopPropagation();fn();closeQM();});b.addEventListener('pointerdown',ev=>ev.stopPropagation());qm.appendChild(b);return b;};
   recent.slice(0,8).forEach((c,i)=>{const b=add(-Math.PI/2+i*Math.PI/4,82,'','',()=>{setHex(c);if(!PAINT.includes(tool))setTool(lastBrush);},'색 '+c);b.style.background=c;if(c===curHex())b.classList.add('on');});
-  const tools=[[lastBrush,svg(lastBrush),()=>setTool(lastBrush),BNAME[lastBrush]],['eraser',svg('eraser'),()=>setTool('eraser'),'지우개'],['undo',svg('undo'),undo,'실행 취소'],['redo',svg('redo'),redo,'다시 실행']];
+  const tools=[[lastBrush,brushIcon(lastBrush),()=>setTool(lastBrush),BNAME[lastBrush]],['eraser',svg('eraser'),()=>setTool('eraser'),'지우개'],['undo',svg('undo'),undo,'실행 취소'],['redo',svg('redo'),redo,'다시 실행']];
   tools.forEach(([k,h,fn,tp],i)=>{const b=add(-Math.PI/2+i*Math.PI/2,40,h,'',fn,tp);if(k===tool)b.classList.add('on');});
   add(0,0,'×','qc',()=>{},'닫기');
   qm.hidden=false;
