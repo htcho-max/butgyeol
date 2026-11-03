@@ -460,6 +460,10 @@ input[type=range]{accent-color:var(--accent);width:100%}
         <canvas id="padC"></canvas>
         <div class="pstat" id="pStat"></div>
         <div class="pvals" id="pVals"></div>
+        <div class="psec"><b>S펜 버튼 신호 확인 <span style="font-weight:400;color:var(--muted);font-size:12px">버튼이 이상하게 동작하면 이 기록을 캡처해 알려 주세요</span></b>
+          <p>왼쪽 칸 위에서 ① 펜을 띄운 채 버튼을 눌렀다 떼기 ② 버튼을 누른 채 펜을 대고 긋기를 해 보세요. 그림판에서 한 동작도 기록돼요.</p>
+          <pre id="pSig" style="margin:0;max-height:220px;overflow:auto;font-size:11px;line-height:1.45;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px;white-space:pre-wrap"></pre>
+          <div class="mbtns left"><button class="txtbtn line" id="pSigClr">기록 지우기</button></div></div>
       </div>
       <div class="pcol">
         <div class="psec"><b>필압 범위 맞추기</b>
@@ -522,7 +526,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 <script>
 (()=>{
 "use strict";
-const VERSION='v2.2';
+const VERSION='v2.2.1';
 const $=s=>document.querySelector(s);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const IN_ARTIFACT=!!window.claude;
@@ -1350,7 +1354,8 @@ view.addEventListener('pointerdown',e=>penDown(e));
 // 펜 버튼을 누른 채 대거나 떼면 브라우저가 pointerdown/up 대신 pointermove(버튼 조합 변화)만 보내는 경우가 있어 둘 다 처리
 let penChord=false;
 function penDown(e){
-  if(e.pointerType==='pen'&&!(e.buttons&1)&&!e.pressure&&((e.buttons&2)||(e.buttons&32)||e.button===2||e.button===5)){
+  // 압력 0 = 아직 안 닿음. 갤럭시 탭은 띄운 채 누른 S펜 버튼을 buttons=1(왼쪽)로 보내기도 해서 그것도 '띄운 채 버튼'으로 봄
+  if(e.pointerType==='pen'&&!e.pressure&&((e.buttons&1)||(e.buttons&2)||(e.buttons&32)||e.button===2||e.button===5)){
     // 띄운 채 버튼만 누른 것 → 아직 아무것도 하지 않음(떼면 빠른 메뉴, 이어서 대면 펜 버튼 동작)
     if(!penBtnHeld)penHoverBtn={t:performance.now(),sp:loc(e)};penBtnHeld=true;return;}
   if(ADJ){toast('색 보정 창을 먼저 닫아 주세요 (적용 또는 취소)');return;}
@@ -1366,7 +1371,7 @@ function penDown(e){
   if(e.pointerType==='mouse'&&!penLikeMouse&&e.button!==0)return;
   if(pinch||drawId!==null)return;
   penHoverBtn=null;
-  const penBtn=(e.pointerType==='pen'||penLikeMouse)&&!TF&&((e.buttons&2)||(e.buttons&32)||e.button===2||e.button===5);
+  const penBtn=(e.pointerType==='pen'||penLikeMouse)&&!TF&&((e.buttons&2)||(e.buttons&32)||e.button===2||e.button===5||(e.pointerType==='pen'&&penBtnHeld));
   penLast={type:e.pointerType,button:e.button,buttons:e.buttons,btn:penBtn};
   hover=null;closeQM();
   if(penBtn&&ST.penBtn!=='eraser'){penBtnAt=performance.now();const d=toDoc(sp.x,sp.y);
@@ -1381,11 +1386,11 @@ view.addEventListener('pointermove',e=>{
   if(e.pointerType==='touch'){touchMove(e);return;}
   const sp=loc(e);
   if(mousePan&&mousePan.id===e.pointerId){V.tx+=sp.x-mousePan.x;V.ty+=sp.y-mousePan.y;mousePan.x=sp.x;mousePan.y=sp.y;updM();dirty();return;}
-  if(drawId===e.pointerId){if(e.pointerType==='pen'&&penChord&&!(e.buttons&1)){penChord=false;penUp(e);return;}inputMove(e);return;}
-  if(e.pointerType==='pen'&&drawId===null&&(e.buttons&1)&&!mousePan){penChord=true;penDown(e);return;}
+  if(drawId===e.pointerId){if(e.pointerType==='pen'&&penChord&&(!(e.buttons&1)||!e.pressure)){penChord=false;penUp(e);return;}inputMove(e);return;}
+  if(e.pointerType==='pen'&&drawId===null&&(e.buttons&1)&&e.pressure>0&&!mousePan){penChord=true;penDown(e);return;}
   if(drawId===null&&(e.pointerType==='pen'||e.pointerType==='mouse')){hover={x:sp.x,y:sp.y,pen:e.pointerType==='pen'};
     if(tool==='picker'&&!TF){const d=toDoc(sp.x,sp.y);hover.col=sampleAt(d.x,d.y);}
-    if(e.pointerType==='pen'){const btn=!!(e.buttons&2)||!!(e.buttons&32);
+    if(e.pointerType==='pen'){const btn=!!(e.buttons&2)||!!(e.buttons&32)||(!e.pressure&&!!(e.buttons&1));
       if(btn&&!penBtnHeld&&!e.pressure)penHoverBtn={t:performance.now(),sp};
       if(!btn&&penBtnHeld&&penHoverBtn&&ST.qmenu&&performance.now()-penHoverBtn.t<700)openQM(penHoverBtn.sp);
       if(!btn)penHoverBtn=null;penBtnHeld=btn;}
@@ -1992,7 +1997,15 @@ document.addEventListener('pointerdown',e=>{if(!qm.hidden&&!e.target.closest('#q
 
 /* ---------- 펜 설정 창: 실시간 값 · 필압 범위 · 곡선 ---------- */
 const padC=$('#padC');let padX=null,padSamples=[],padSeen={tilt:false,btn:false,hover:false,pen:false},padLast=null;
-function openPen(){$('#penModal').hidden=false;requestAnimationFrame(()=>{const r=padC.getBoundingClientRect();padC.width=Math.round(r.width*2);padC.height=Math.round(r.height*2);padX=padC.getContext('2d');padClear();drawCurve();penStat();rangeText();});}
+// S펜 버튼 신호 기록: 펜·마우스의 누름/뗌, 띄운 채 버튼 상태 변화, 오른쪽 클릭 이벤트를 최근 40개까지
+const sigLog=[];const sigLast=new Map();
+function logSig(e,kind){const t=e.target&&e.target.closest?(e.target.closest('#padC')?'설정칸':e.target.closest('#view')?'그림판':'기타'):'기타';
+  sigLog.push(`${new Date().toTimeString().slice(3,8)} ${kind.padEnd(11)} ${e.pointerType||'-'} btn=${e.button} btns=${e.buttons} 압=${(e.pressure??0).toFixed(2)} ${t}`);
+  if(sigLog.length>40)sigLog.shift();if(!$('#penModal').hidden){const pre=$('#pSig');pre.textContent=sigLog.join('\n');pre.scrollTop=pre.scrollHeight;}}
+['pointerdown','pointerup','pointercancel','contextmenu','auxclick'].forEach(k=>window.addEventListener(k,e=>{if(e.pointerType==='touch')return;logSig(e,k.replace('pointer','p.'));},true));
+window.addEventListener('pointermove',e=>{if(e.pointerType==='touch')return;const key=e.pointerId,prev=sigLast.get(key),st=e.buttons+'|'+(e.pressure>0?1:0);if(prev!==st){sigLast.set(key,st);if(prev!==undefined)logSig(e,'p.move변화');}},true);
+$('#pSigClr').onclick=()=>{sigLog.length=0;$('#pSig').textContent='';};
+function openPen(){$('#pSig').textContent=sigLog.join('\n');$('#penModal').hidden=false;requestAnimationFrame(()=>{const r=padC.getBoundingClientRect();padC.width=Math.round(r.width*2);padC.height=Math.round(r.height*2);padX=padC.getContext('2d');padClear();drawCurve();penStat();rangeText();});}
 function padClear(){if(!padX)return;padX.fillStyle='#fff';padX.fillRect(0,0,padC.width,padC.height);padX.fillStyle='#9aa1ad';padX.font='26px '+getComputedStyle(document.body).fontFamily;padX.fillText('여기에 그어 보세요',20,40);padSamples=[];}
 function penVals(e,down){const deg=v=>v==null?'-':Math.round(v*180/Math.PI)+'°';
   const rows=[['종류',{pen:'펜',mouse:'마우스',touch:'손가락'}[e.pointerType]||e.pointerType],['상태',down?'닿음':'띄움'],['필압 (원래 값)',(e.pressure||0).toFixed(3)],['필압 (보정 후)',e.pointerType==='pen'?curveP(pressure(e),null).toFixed(3):'-'],
