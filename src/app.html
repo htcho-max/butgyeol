@@ -291,6 +291,10 @@ input[type=range]{accent-color:var(--accent);width:100%}
 @media (max-width:560px){ #saveState,#workName{display:none} .txtbtn .tl{display:none} }
 #tutCard{position:absolute;right:10px;bottom:10px;z-index:9;width:min(350px,calc(100% - 20px));max-height:calc(100% - 20px);overflow:auto;background:var(--raised);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.2);padding:12px 14px;display:flex;flex-direction:column;gap:9px;font-size:14px;color:var(--fg)}
 #tutCard[hidden],#tutPill[hidden]{display:none}
+#tutList{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.tles{display:flex;gap:12px;align-items:flex-start;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--panel);cursor:pointer;text-align:left;color:var(--fg);font:inherit}
+.tles:hover{border-color:var(--accent)}.tles canvas{width:64px;height:96px;border-radius:6px;flex:none;border:1px solid var(--line)}
+.tles div{display:flex;flex-direction:column;gap:4px;min-width:0}.tles b{font-size:14px}.tles span{font-size:12px;color:var(--muted);line-height:1.45}.tles em{font-style:normal;font-size:11px;color:#2e9e5b;font-weight:700}
 #tutCard .th{display:flex;align-items:center;gap:6px}#tutCard .th b{font-size:13px;color:var(--accent)}#tutN{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}#tutCard .sp{flex:1}
 #tutCard .th button{width:30px;height:30px;border:0;border-radius:8px;background:transparent;cursor:pointer;font-size:18px;line-height:1;color:var(--muted)}#tutCard .th button:hover{background:var(--accent-soft)}
 #tutCard .tbar{height:4px;border-radius:2px;background:var(--line);flex:none}#tutCard .tbar i{display:block;height:100%;border-radius:2px;background:var(--accent);transition:width .3s}
@@ -417,7 +421,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
         <button class="mitem" id="cmBal"><b>말풍선</b><span>끌어서 그리고, 밖을 눌러 꼬리를 달아요</span></button>
         <button class="mitem" id="cmPose"><b>3D 포즈 인형</b><span>사람 자세를 잡아 밑그림으로 넣어요</span></button>
         <button class="mitem" id="cmEfx"><b>효과선</b><span>집중선·속도선을 한 번에</span></button>
-        <button class="mitem" id="cmTut"><b>따라 그리기</b><span>안내를 따라 세로 웹툰 한 장면을 완성해요</span></button>
+        <button class="mitem" id="cmTut"><b>따라 그리기</b><span>안내를 따라 웹툰 장면을 완성해요 (2가지 장면)</span></button>
       </div>
       <div class="pop" id="framePop" hidden style="top:12px;right:12px;width:min(340px,calc(100% - 24px))">
         <h3>컷 나누기</h3>
@@ -698,6 +702,14 @@ input[type=range]{accent-color:var(--accent);width:100%}
   </div>
 </div>
 
+<div class="scrim" id="tutModal" hidden>
+  <div class="modal" role="dialog" aria-labelledby="tuT" style="width:min(600px,100%)">
+    <h3 id="tuT">따라 그리기</h3>
+    <p style="margin:0;color:var(--muted);font-size:13px;line-height:1.5">따라 그릴 장면을 골라요. 새 작품(1200×1800)이 만들어지고 단계마다 안내해요. 지금 그림은 보관함에 그대로 있어요.</p>
+    <div id="tutList"></div>
+    <div class="mbtns"><button class="txtbtn" id="tutCancel">닫기</button></div>
+  </div>
+</div>
 <div class="scrim" id="askModal" hidden>
   <div class="modal" role="dialog" aria-labelledby="akT">
     <h3 id="akT"></h3>
@@ -710,7 +722,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 <script>
 (()=>{
 "use strict";
-const VERSION='v2.7';
+const VERSION='v2.8';
 const $=s=>document.querySelector(s);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const IN_ARTIFACT=!!window.claude;
@@ -1274,10 +1286,12 @@ function trySnap(){
   toast({line:'직선',rect:'사각형',ellipse:sh.circle?'원':'타원'}[sh.type]+'으로 바꿨어요'+(sh.type==='line'?' · 떼지 않고 움직이면 끝점이 따라와요':''));
 }
 function clearBuf(){if(S&&S.clip)sctx.restore();if(S&&S.cclip)cctx.restore();sctx.setTransform(1,0,0,1,0,0);sctx.clearRect(0,0,DOC.w,DOC.h);if(S&&S.tail)cctx.clearRect(0,0,DOC.w,DOC.h);}
+// 손떨림 보정(부드럽게)은 펜보다 조금 늦게 따라오니, 펜을 뗄 때 마지막 점까지 이어 줌 → 선 끝이 짧아져 칸이 안 닫히는 일 줄이기 (끈 보정은 그대로)
+function strokeCatchUp(){if(ST.stabMode==='rope'||!S.sm||!S.raw||S.raw.length<2)return;const r=S.raw[S.raw.length-1];if(Math.hypot(r.x-S.sm.x,r.y-S.sm.y)<.5)return;const n={x:r.x,y:r.y,p:S.sm.p};S.sm=n;S.last=n;advance(n);}
 function endStroke(){
   if(!S)return;const L=S.T;ACT=S.eraser?'지우개':(S.shape?({line:'직선',rect:'사각형',ellipse:'원'})[S.shape.type]+' · ':'')+(BNAME[S.name]||'그리기');clearTimeout(S.holdT);
   if(S.smudge){if(S.lclip)L.ctx.restore();}
-  else{if(!S.shape)flushTail();
+  else{if(!S.shape){strokeCatchUp();flushTail();}
     const wet=S.b.wet&&!S.eraser,pd=wet?wetPad(S.b):2,bb=S.bb,x=Math.max(0,Math.floor(bb[0])-pd),y=Math.max(0,Math.floor(bb[1])-pd),x2=Math.min(DOC.w,Math.ceil(bb[2])+pd),y2=Math.min(DOC.h,Math.ceil(bb[3])+pd);
     if(x2>x&&y2>y){const src=wet?wetify(strokeBuf,x,y,x2-x,y2-y,S.b):strokeBuf;drawStroke(L.ctx,L,src,wet?0:x,wet?0:y,x,y,x2-x,y2-y);if(wet)growBB(S.bb,(x+x2)/2,(y+y2)/2,Math.max(x2-x,y2-y)/2);}}
   if(S.vrec){const add=S.vrec.map((it,k)=>{const m=S.syms&&S.syms[k];return it.length?vBB({n:S.name,c:S.vcol,b:S.vb,op:S.opacity,m:m?[m.a,m.b,m.c,m.d,m.e,m.f]:null,i:it}):null;}).filter(Boolean);VECOP={v0:L.vec,v1:{strokes:[...L.vec.strokes,...add]}};L.vec=VECOP.v1;}
@@ -2800,8 +2814,8 @@ function renderGallery(){
   const g=$('#galGrid');g.innerHTML='';
   const nc=document.createElement('div');nc.className='wcard';nc.innerHTML=`<button class="wthumb wnew"><span class="in">${svg('plus')}새 작품</span></button><div class="winfo"><div><b>&nbsp;</b><span>캔버스 크기 고르기</span></div></div>`;
   nc.querySelector('button').onclick=openNew;g.appendChild(nc);
-  const tc=document.createElement('div');tc.className='wcard';tc.innerHTML=`<button class="wthumb wnew"><span class="in">${svg('comic')}따라 그리기</span></button><div class="winfo"><div><b>웹툰 한 장면</b><span>단계별로 따라 그려요</span></div></div>`;
-  tc.querySelector('button').onclick=tutStart;g.appendChild(tc);
+  const tc=document.createElement('div');tc.className='wcard';tc.innerHTML=`<button class="wthumb wnew"><span class="in">${svg('comic')}따라 그리기</span></button><div class="winfo"><div><b>웹툰 장면 2가지</b><span>단계별로 따라 그려요</span></div></div>`;
+  tc.querySelector('button').onclick=tutChoose;g.appendChild(tc);
   [...works].sort((a,b)=>(b.updated||0)-(a.updated||0)).forEach(w=>{
     const c=document.createElement('div');c.className='wcard'+(w.id===curId?' cur':'');
     let im='';if(w.thumb){const u=URL.createObjectURL(w.thumb);galUrls.push(u);im=`<img alt="" src="${u}">`;}
@@ -2971,9 +2985,9 @@ document.addEventListener('focusout',hideTip);
 /* ---------- 따라 그리기 (튜토리얼) ---------- */
 // 단계 카드가 할 일을 알려 주고, 해낸 일은 레이어 상태·작업 기록으로 확인해 체크해요. '준비해 주기'는 레이어·도구·색만 맞춰 줘요(그리기는 직접)
 const TUT_KEY='bg-tut',TGN='가이드 (따라 그리기)';
-const TROLE={guide:TGN,sketch:'밑그림',line:'선화',flat:'밑색',shade:'그림자',sky:'배경색'};
+const TROLE={guide:TGN,sketch:'밑그림',line:'선화',flat:'밑색',shade:'그림자',sky:'배경색',bgline:'배경 선',doll:'포즈 인형',char:'인물 선',glow:'노을빛'};
 const tutAll=()=>{try{return JSON.parse(localStorage.getItem(TUT_KEY)||'{}')||{};}catch(e){return{};}};
-function tutSave(){try{const a=tutAll();if(TUT)a[TUT.work]={step:TUT.step,c:TUT.c,min:TUT.min};localStorage.setItem(TUT_KEY,JSON.stringify(a));}catch(e){}}
+function tutSave(){try{const a=tutAll();if(TUT)a[TUT.work]={les:TUT.les,step:TUT.step,c:TUT.c,min:TUT.min};localStorage.setItem(TUT_KEY,JSON.stringify(a));}catch(e){}}
 function tutForget(id){try{const a=tutAll();delete a[id];localStorage.setItem(TUT_KEY,JSON.stringify(a));}catch(e){}}
 // 역할 → 레이어 (이번 세션에서 만든 id 우선, 없으면 이름으로)
 function tR(r){if(!TUT)return null;const id=TUT.ids[r];return layers.find(l=>l.id===id&&!isF(l))||layers.find(l=>!isF(l)&&l.name===TROLE[r])||null;}
@@ -2982,14 +2996,16 @@ const frL=()=>layers.find(l=>l.frames&&l.frames.polys);
 const efxL=()=>layers.find(l=>/^효과선/.test(l.name)&&!l.text);
 const balL=()=>layers.find(l=>l.balloon);
 const txtLs=()=>layers.filter(l=>l.text&&(l.text.str||'').trim());
-const sfxL=()=>txtLs().find(l=>/쏴|솨|후두|주룩|투둑|촤/.test(l.text.str))||null;
+const sfxL=()=>txtLs().find(l=>LES().sfx.test(l.text.str))||null;
 const lineTxt=()=>txtLs().find(l=>l!==sfxL())||null;
 const tBusy=k=>GEN&&GEN.key===k;
-// 위·아래 두 칸 (컷 레이어가 있으면 그 칸, 없으면 기본 '위아래 2')
-function tutPanels(){const F=frL();let ps=null;
-  if(F&&F.frames.polys.length>=2)ps=F.frames.polys.map(P=>{const xs=P.map(q=>q[0]),ys=P.map(q=>q[1]),x=Math.min(...xs),y=Math.min(...ys);return{x,y,w:Math.max(...xs)-x,h:Math.max(...ys)-y,P};}).sort((a,b)=>b.w*b.h-a.w*a.h).slice(0,2).sort((a,b)=>a.y-b.y);
-  if(!ps){const m=Math.round(Math.min(DOC.w,DOC.h)*.05),g=Math.round(Math.min(DOC.w,DOC.h)*.025);ps=frameLayout({preset:'2h',margin:m,gx:g,gy:g}).map(P=>({x:P[0][0],y:P[0][1],w:P[1][0]-P[0][0],h:P[2][1]-P[0][1],P}));}
-  return ps.map(p=>{const s=Math.min(p.w/1080,p.h/825);return{...p,s,ox:p.x+(p.w-1080*s)/2,oy:p.y+(p.h-825*s)/2};});}
+// 장면의 칸 (컷 레이어가 있으면 그 칸, 없으면 장면의 기본 배치). 칸마다 설계 크기(ds)에 맞춰 늘리고 가운데 맞춤
+function tPanelsFor(Ls,F){const n=Ls.ds.length;let ps=null;
+  const bb=P=>{const xs=P.map(q=>q[0]),ys=P.map(q=>q[1]),x=Math.min(...xs),y=Math.min(...ys);return{x,y,w:Math.max(...xs)-x,h:Math.max(...ys)-y,P};};
+  if(F&&F.frames.polys.length>=n)ps=F.frames.polys.map(bb).sort((a,b)=>b.w*b.h-a.w*a.h).slice(0,n).sort((a,b)=>a.y-b.y||a.x-b.x);
+  if(!ps){const m=Math.round(Math.min(DOC.w,DOC.h)*.05),g=Math.round(Math.min(DOC.w,DOC.h)*.025);ps=frameLayout({preset:Ls.preset,margin:m,gx:g,gy:g}).map(bb);}
+  return ps.map((p,i)=>{const[dw,dh]=Ls.ds[i]||Ls.ds[0],s=Math.min(p.w/dw,p.h/dh);return{...p,s,ox:p.x+(p.w-dw*s)/2,oy:p.y+(p.h-dh*s)/2};});}
+const tutPanels=()=>tPanelsFor(LES(),frL());
 const tMap=(p,x,y)=>({x:p.ox+x*p.s,y:p.oy+y*p.s});
 // 가이드 그림 (칸 하나를 1080×825 로 보고 그린 선)
 const tDrop=(x,y)=>`M${x} ${y-20}C${x+11} ${y-3} ${x+11} ${y+12} ${x} ${y+12}C${x-11} ${y+12} ${x-11} ${y-3} ${x} ${y-20}Z`;
@@ -3015,11 +3031,12 @@ const TG=[
     'M476 758L476 790L530 790C532 774 528 762 520 758ZM562 756C556 762 556 774 558 790L612 790L612 756Z',
     'M0 790L1080 790',tEll(800,808,110,12),tEll(240,806,70,9)],
    dash:['M60 60L400 60L400 230L60 230Z'],label:[['효과음 자리',230,145]]}];
-function drawGuide(L){const x=L.ctx,ps=tutPanels();x.save();x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,DOC.w,DOC.h);
-  TG.forEach((G,i)=>{const p=ps[i];if(!p)return;x.save();x.setTransform(p.s,0,0,p.s,p.ox,p.oy);x.lineCap='round';x.lineJoin='round';x.strokeStyle='#2f86ff';x.lineWidth=4;
+function guideDraw(x,TGs,ps){
+  TGs.forEach((G,i)=>{const p=ps[i];if(!p)return;x.save();x.transform(p.s,0,0,p.s,p.ox,p.oy);x.lineCap='round';x.lineJoin='round';x.strokeStyle='#2f86ff';x.lineWidth=4;
     G.line.forEach(d=>x.stroke(new Path2D(d)));x.setLineDash([14,12]);x.lineWidth=3;G.dash.forEach(d=>x.stroke(new Path2D(d)));x.setLineDash([]);
-    x.fillStyle='#2f86ff';x.font='600 30px sans-serif';x.textAlign='center';x.textBaseline='middle';G.label.forEach(([t,a,b])=>x.fillText(t,a,b));x.restore();});
-  x.restore();thumb(L);}
+    x.fillStyle='#2f86ff';x.font='600 30px sans-serif';x.textAlign='center';x.textBaseline='middle';G.label.forEach(([t,a,b])=>x.fillText(t,a,b));
+    if(G.mark){x.strokeStyle='#f28a1a';x.fillStyle='#f28a1a';x.lineWidth=6;G.mark.forEach(d=>x.stroke(new Path2D(d)));(G.mlabel||[]).forEach(([t,a,b])=>x.fillText(t,a,b));}x.restore();});}
+function drawGuide(L){const x=L.ctx;x.save();x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,DOC.w,DOC.h);guideDraw(x,LES().TG,tutPanels());x.restore();thumb(L);}
 function tutEnsureGuide(){let G=tR('guide');if(G)return G;ACT='따라 그리기 가이드';
   structOp(()=>{G=newLayer(TGN);G.locked=true;G.opacity=.55;const bi=layers.findIndex(l=>l.parent==null&&!isF(l));layers.splice(bi>=0?bi+1:0,0,G);active=layers.indexOf(G);TUT.ids.guide=G.id;drawGuide(G);});
   return G;}
@@ -3029,11 +3046,13 @@ function tutLayer(role,rel,where,o){let L=tR(role);if(L)return L;const R0=rel?tR
     if(R0){L.parent=R0.parent;const i=layers.indexOf(R0);layers.splice(where==='below'?i:i+1,0,L);}else addNode(L);active=layers.indexOf(L);TUT.ids[role]=L.id;});
   return L;}
 function tutProps(L,o){if(!L)return;const need=Object.keys(o).some(k=>L[k]!==o[k]);if(need)structOp(()=>Object.assign(L,o));}
+// 컷 테두리 바로 아래(맨 위 그림 레이어) — 말풍선·글자를 효과선보다 위에 두려고
+function tTopL(){for(let i=layers.length-1;i>=0;i--){const l=layers[i];if(l.parent==null&&!isF(l)&&!l.frames)return l;}return layers[active];}
 function tutPick(L){if(L&&layers.includes(L)){active=layers.indexOf(L);renderLayers();}}
 const tBelow=(a,b)=>a&&b&&layers.indexOf(a)<layers.indexOf(b);
 async function tutText(c,str,o){setTool('text');ST.txt.align='center';newText(c);TXT.cen=c;await txSet({str,...o});const L=TXT&&TXT.L;finishText();return L;}
 
-const TSTEPS=[
+const STEPS_RAIN=[
   {t:'비 오는 날, 웹툰 한 장면',b:'위아래 두 컷짜리 세로 웹툰을 따라 그려요. 위 컷은 비를 보고 놀란 아이, 아래 컷은 우산을 쓰고 걸어가는 뒷모습이에요. 단계마다 할 일이 체크되고, 주황색으로 반짝이는 버튼이 다음에 누를 곳이에요.',
    tip:'"준비해 주기"를 누르면 레이어·도구·색을 대신 맞춰 줘요. 그리는 건 직접 해요. 카드는 – 로 접어 둘 수 있어요.',tasks:[]},
   {t:'1. 컷 나누기',b:'만화 버튼 → 컷 나누기 → "위아래 2"를 고르고 완료를 눌러요. 컷 테두리는 따로 맨 위 레이어에 생겨서, 칸 밖으로 삐져나온 그림은 흰 여백이 가려 줘요.',autoL:'대신 나눠 주기',
@@ -3073,7 +3092,7 @@ const TSTEPS=[
    tip:'풍선 안쪽을 끌면 옮겨지고, 글자 상자도 끌어서 옮길 수 있어요. 줄을 바꾸면 풍선 안에 잘 들어가요.',autoL:'대신 넣어 주기',
    enter(){if(SEL&&efxL()){SEL=null;updBars();dirty();}},
    tasks:[{l:'말풍선 그리기',ok:()=>!!balL()&&!tBusy('balloon'),hl:()=>tBusy('balloon')?'#balText':'#bComic'},{l:'대사 쓰기',ok:()=>!!lineTxt(),hl:()=>TXT?'#txOk':'[data-tool="text"]'}],
-   async auto(){const p=tutPanels()[0];if(SEL){SEL=null;updBars();}tutPick(tR('line')||layers[active]);
+   async auto(){const p=tutPanels()[0];if(SEL){SEL=null;updBars();}tutPick(tTopL());
      if(!balL()&&!tBusy('balloon')){const c=tMap(p,820,200),w=390*p.s,h=230*p.s,t=tMap(p,650,318);genStart('balloon',{type:'round',x:c.x-w/2,y:c.y-h/2,w,h,tail:{x:t.x,y:t.y},lw:Math.max(2,Math.round(Math.min(DOC.w,DOC.h)/300)),seed:Math.floor(Math.random()*1e6)},'말풍선','balloon','새 말풍선 레이어');}
      if(tBusy('balloon'))genFinish();
      if(!lineTxt()){const m=balL().balloon,c={x:m.x+m.w/2,y:m.y+m.h/2};tutPick(balL());setHex('#1c2029');await tutText(c,'어?\n비 온다…',{size:Math.round(54*p.s),bold:false});}
@@ -3081,7 +3100,7 @@ const TSTEPS=[
   {t:'9. 효과음',b:'글자 도구로 아래 컷 왼쪽 위(점선 자리)에 "쏴아아"를 크고 굵게 써요. 그 글자 레이어를 고른 채 레이어 창의 "테두리"를 켜면 흰 외곽선이 둘러져서 그림 위에서도 잘 읽혀요.',
    tip:'글자 창에서 크기를 130~160 정도로 키워 보세요.',cols:[['진파랑','#2a4f9e'],['먹색','#1c2029']],autoL:'대신 넣어 주기',
    tasks:[{l:'"쏴아아" 쓰기',ok:()=>!!sfxL(),hl:()=>TXT?'#txOk':'[data-tool="text"]'},{l:'테두리 켜기',ok:()=>!!(sfxL()&&sfxL().fx&&sfxL().fx.on),hl:()=>sfxL()&&layers[active]!==sfxL()?'#layerList':'#oFx'}],
-   async auto(){const p=tutPanels()[1];let L=sfxL();if(!L){tutPick(tR('line')||layers[active]);setHex('#2a4f9e');L=await tutText(tMap(p,230,145),'쏴아아',{size:Math.round(130*p.s),bold:true});}
+   async auto(){const p=tutPanels()[1];let L=sfxL();if(!L){tutPick(tTopL());setHex('#2a4f9e');L=await tutText(tMap(p,230,145),'쏴아아',{size:Math.round(130*p.s),bold:true});}
      L=sfxL();if(L){tutPick(L);if(!(L.fx&&L.fx.on))fxEdit({on:true,size:Math.max(6,Math.round(DOC.w/160)),color:'#ffffff'});}setTool(lastBrush);}},
   {t:'10. 마무리',b:'레이어 창에서 가이드와 밑그림의 눈을 꺼서 숨겨요. 전체를 한번 보고, 마음에 들면 오른쪽 위 "내보내기"로 PNG를 저장하거나 공유해요.',
    tip:'그림은 작품 보관함에 자동 저장돼 있어요. 나중에 레이어를 고쳐도 돼요.',autoL:'숨겨 주기',
@@ -3090,7 +3109,97 @@ const TSTEPS=[
   {t:'완성!',fin:true,b:'첫 웹툰 장면을 완성했어요. 다음엔 가이드 없이 같은 순서로 나만의 장면을 그려 보세요.',
    tip:'컷 → 밑그림 → 선화(벡터) → 밑색(참조 + 채우기) → 그림자(클리핑 + 곱하기) → 하늘 → 효과선 → 말풍선·글자',tasks:[]}];
 
-function tutPush(e){try{const s=TSTEPS[TUT.step];
+// ---- 두 번째 장면: 저녁 골목길 (원근 자 + 3D 포즈 인형) — 칸 하나를 1080×1680 으로 보고 그린 선
+const AVP=[540,700];
+function alleyGuide(){const V=AVP,T=(p,t)=>[p[0]+(V[0]-p[0])*t,p[1]+(V[1]-p[1])*t],r=n=>Math.round(n*10)/10,P=q=>r(q[0])+' '+r(q[1]);
+  const A=[0,160],B=[0,1420],C=[1080,260],D=[1080,1380],t1=.8,yb=B[1]-(B[1]-V[1])*t1,t2=(D[1]-yb)/(D[1]-V[1]);
+  const wp=(top,bot,t,v)=>{const a=T(top,t),b=T(bot,t);return[a[0]+(b[0]-a[0])*v,a[1]+(b[1]-a[1])*v];};
+  const quad=(top,bot,ta,tb,va,vb)=>`M${P(wp(top,bot,ta,va))}L${P(wp(top,bot,tb,va))}L${P(wp(top,bot,tb,vb))}L${P(wp(top,bot,ta,vb))}Z`;
+  const La=T(A,t1),Lb=T(B,t1),Rc=T(C,t2),Rd=T(D,t2),line=[];
+  line.push(`M${P(A)}L${P(La)}L${P(Lb)}L${P(B)}`,`M${P(C)}L${P(Rc)}L${P(Rd)}L${P(D)}`);
+  line.push(`M${P([La[0],520])}L${P([Rc[0],520])}M${P([La[0],520])}L${P(La)}M${P([Rc[0],520])}L${P(Rc)}M${P(Lb)}L${P(Rd)}`);
+  [[.1,.26,.14,.32],[.36,.5,.14,.32],[.1,.26,.46,.62],[.36,.5,.46,.62],[.6,.7,.6,1]].forEach(q=>line.push(quad(A,B,...q)));
+  [[.12,.28,.16,.34],[.4,.54,.16,.34],[.12,.28,.5,.66],[.62,.72,.62,1]].forEach(q=>line.push(quad(C,D,...q)));
+  const fx0=La[0]+18,fx1=Rc[0]-18,fw=(fx1-fx0-24)/2;[[560,600],[640,680],[720,760]].forEach(([y0,y1])=>{line.push(`M${r(fx0)} ${y0}L${r(fx0+fw)} ${y0}L${r(fx0+fw)} ${y1}L${r(fx0)} ${y1}Z`,`M${r(fx1-fw)} ${y0}L${r(fx1)} ${y0}L${r(fx1)} ${y1}L${r(fx1-fw)} ${y1}Z`);});
+  [[0,.07],[.14,.21],[.28,.34],[.4,.45],[.5,.54],[.58,.61],[.64,.66]].forEach(([a,b])=>line.push(`M${P(T([540,1680],a))}L${P(T([540,1680],b))}`));
+  line.push('M895 80L895 1560M850 150L940 150M860 200L930 200',`M895 150Q${P(T([895,150],.3))} ${P(T([895,150],.62))}`,`M895 200Q${P(T([895,214],.3))} ${P(T([895,200],.62))}`);
+  return{line,dash:['M330 860L750 860L750 1600L330 1600Z',tEll(640,250,230,120),'M60 1440L340 1440L340 1600L60 1600Z'],
+    label:[['인물 자리',540,1640],['말풍선 자리',640,250],['효과음 자리',200,1520]],
+    mark:[`M${V[0]-24} ${V[1]-24}L${V[0]+24} ${V[1]+24}M${V[0]+24} ${V[1]-24}L${V[0]-24} ${V[1]+24}`],mlabel:[['소실점',V[0]+92,V[1]-40]]};}
+const aVP=()=>tMap(tutPanels()[0],AVP[0],AVP[1]);
+const vpOk=()=>{const v=aVP(),q=ST.rul.vp[0];return ST.rul.type==='p1'&&Math.hypot(q[0]*DOC.w-v.x,q[1]*DOC.h-v.y)<Math.min(DOC.w,DOC.h)*.035;};
+const STEPS_ALLEY=[
+  {t:'저녁 골목길을 달려라',b:'소실점 하나로 모이는 골목길 배경을 원근 자로 곧게 긋고, 3D 포즈 인형으로 달리는 자세를 잡아 그 위에 아이를 그려요. 마지막엔 노을빛, 집중선, 외침 말풍선으로 장면을 살려요.',
+   tip:'첫 장면처럼 "준비해 주기"가 레이어·도구·색을 맞춰 줘요. 선은 직접 그어요.',tasks:[]},
+  {t:'1. 컷 한 칸',b:'만화 → 컷 나누기에서 "1칸"을 고르고 완료를 눌러요. 세로로 긴 한 칸이라 골목이 깊어 보여요.',autoL:'대신 나눠 주기',
+   tasks:[{l:'컷 테두리 한 칸',ok:()=>!!frL()&&!tBusy('frames'),hl:()=>tBusy('frames')?'#frPre [data-fp="1"]':'#bComic'}],
+   auto(){const F=frL();if(!F)openFrames();else if(!GEN)genEdit(F,'frames','frame');if(!GEN)return;const f={...GEN.L.frames,preset:'1'};f.polys=frameLayout(f);genUpdate(f);genFinish();setTool(lastBrush);updBars();}},
+  {t:'2. 원근 자 놓기',b:'자 버튼 → "원근 1점"을 골라요. 이어서 "자 위치 바꾸기"를 누르고 주황 점(소실점)을 가이드의 ✕ 위로 끌어 놓은 뒤 완료. 이제 그리는 선이 소실점으로 모이거나, 수평·수직으로 곧게 붙어요.',
+   tip:'"자에 맞춰 그리기"가 켜져 있어야 선이 붙어요. 소실점 높이가 곧 눈높이예요.',
+   enter(){tutEnsureGuide();},
+   tasks:[{l:'자: 원근 1점',ok:()=>ST.rul.type==='p1',hl:()=>rulPop.hidden?'#bRuler':'#rulChips [data-v="p1"]'},
+     {l:'소실점을 ✕ 에 맞추기',ok:()=>vpOk()&&!GED,hl:()=>GED?'#gedDone':rulPop.hidden?'#bRuler':'#gedBtn'}],
+   auto(){tutEnsureGuide();if(GED)gedEnd();const v=aVP();rulSet(()=>{ST.rul.type='p1';ST.rul.vp[0]=[v.x/DOC.w,v.y/DOC.h];ST.rulSnap=true;ST.guides=true;});rulPop.hidden=true;}},
+  {t:'3. 배경 선',role:'bgline',b:'벡터 레이어를 새로 만들어요(이름은 "배경 선"). 모노라인 펜으로 가이드 위를 그어요. 벽의 위·아래 선과 창문 옆선은 소실점으로, 창문 위아래는 수평으로, 전봇대는 수직으로 — 그리기 시작한 방향을 보고 자가 알아서 골라 줘요.',
+   tip:'선 끝을 조금씩 넘치게 그으면 칸이 잘 막혀서 채우기가 쉬워요. 넘친 부분은 벡터 지우개(교차점까지)로 한 번에 지워요.',cols:[['먹색','#1c2029'],['진갈색','#3b2a26']],
+   tasks:[{l:'벡터 레이어 만들기 (배경 선)',ok:()=>!!tR('bgline'),hl:'#lVec'},{l:'자를 따라 선 긋기 (15획 이상)',ok:()=>tCnt('bgline')>=15,hl:'#tBrush'}],
+   auto(){tutLayer('bgline','guide','above',{vec:{strokes:[]}});setTool('mono');setHex('#1c2029');}},
+  {t:'4. 3D 포즈 인형',role:'doll',b:'만화 → 3D 포즈 인형에서 "달리기"를 고르고, 빈 곳을 끌어 인형이 비스듬히 앞을 보게 돌린 뒤 "캔버스에 넣기". 그다음 선택 도구로 인형을 감싸고 "변형"으로 점선 "인물 자리"에 맞게 줄이고 옮겨요.',
+   tip:'팔다리를 끌면 관절이 움직여요. 달려오는 느낌이 나게 앞으로 살짝 기울여 보세요.',autoL:'대신 넣어 주기',
+   tasks:[{l:'포즈 인형 넣기',ok:()=>!!tR('doll'),hl:()=>$('#poseModal').hidden?'#cmPose':'#poOk'},{l:'변형으로 인물 자리에 맞추기',ok:()=>tCnt('doll')>=1&&!TF,hl:()=>TF?'#tfOk':SEL?'#sTf':'[data-tool="select"]'}],
+   auto(){if(TF)commitTF();let L=tR('doll');const p=tutPanels()[0],c=tMap(p,540,1235),H=760*p.s;
+     if(!L){poseSet('run');PO.yaw=-.55;PO.pitch=.08;L=newLayer(TROLE.doll);let sc=H/7.5,cx=c.x,cy=c.y;const lw=Math.max(2,DOC.h/700);poseRender(L.ctx,cx,cy,sc,lw);
+       const b=contentBBox(L);if(b&&b[3]>0){const k=H/b[3];sc*=k;cx=c.x-(b[0]+b[2]/2-cx)*k;cy=c.y-(b[1]+b[3]/2-cy)*k;L.ctx.clearRect(0,0,DOC.w,DOC.h);poseRender(L.ctx,cx,cy,sc,lw);}L.opacity=.5;tutPick(tR('bgline')||layers[active]);ACT='포즈 인형 넣기';structOp(()=>addNode(L));TUT.ids.doll=L.id;}
+     $('#poseModal').hidden=true;SEL=null;updBars();TUT.c.doll=Math.max(1,TUT.c.doll||0);tutSave();setTool(lastBrush);}},
+  {t:'5. 인물 선',role:'char',b:'인물은 자 없이 그려야 하니 자를 "끔"으로 바꿔요. 포즈 인형 위에 새 벡터 레이어(인물 선)를 만들고, G펜으로 인형에 머리·얼굴·옷을 입히듯 그려요. 가방이나 휘날리는 머리카락을 더하면 달리는 느낌이 살아요.',
+   tip:'팔다리 두께는 인형의 원기둥을 따라 잡고, 관절에서 살짝 꺾어요. 얼굴과 옷은 선으로 꼭 닫아 두면 다음 단계 채우기가 쉬워요.',cols:[['먹색','#1c2029']],
+   tasks:[{l:'자 끄기',ok:()=>ST.rul.type==='off'||!ST.rulSnap,hl:()=>rulPop.hidden?'#bRuler':'#rulChips [data-v="off"]'},{l:'새 벡터 레이어 (인물 선)',ok:()=>!!tR('char'),hl:'#lVec'},{l:'인물 그리기 (15획 이상)',ok:()=>tCnt('char')>=15,hl:'#tBrush'}],
+   auto(){rulSet(()=>{ST.rul.type='off';});rulPop.hidden=true;tutLayer('char',tR('doll')?'doll':'bgline','above',{vec:{strokes:[]}});setTool('gpen');setHex('#1c2029');}},
+  {t:'6. 밑색',role:'flat',b:'포즈 인형은 눈을 꺼서 숨겨요. 배경 선·인물 선·컷 테두리 세 레이어를 각각 골라 "참조"를 켜고, 새 레이어(밑색)를 배경 선 아래에 두고 채우기로 칸마다 칠해요.',
+   tip:'컷 테두리까지 참조로 두면 칸 밖으로 새지 않아요. 불 켜진 창문 몇 개는 노란색으로 — 저녁 느낌이 나요.',
+   cols:[['하늘','#f6b27a'],['왼쪽 벽','#d8b49a'],['오른쪽 벽','#bf9a9a'],['먼 건물','#a99bb0'],['길','#8c8794'],['불 켜진 창','#ffd76e'],['문','#6d5a4e'],['옷','#4f7cc4'],['피부','#f8dcc8'],['머리카락','#3b2f2a']],
+   tasks:[{l:'포즈 인형 숨기기',ok:()=>!tR('doll')||!tR('doll').visible,hl:'#layerList'},
+     {l:'선 레이어 셋을 참조로',ok:()=>['bgline','char'].every(k=>!tR(k)||tR(k).ref)&&(!frL()||frL().ref),hl:'#oRef'},
+     {l:'밑색 레이어를 배경 선 아래에',ok:()=>tBelow(tR('flat'),tR('bgline')),hl:()=>tR('flat')?'#lDown':'#lAdd'},{l:'채우기로 칠하기 (6곳 이상)',ok:()=>tCnt('flat')>=6,hl:'[data-tool="fill"]'}],
+   auto(){const d=tR('doll'),rs=[tR('bgline'),tR('char'),frL()].filter(L=>L&&!L.ref);if((d&&d.visible)||rs.length)structOp(()=>{if(d)d.visible=false;rs.forEach(L=>L.ref=true);});
+     const F=tR('flat'),Bg=tR('bgline');if(F&&Bg&&!tBelow(F,Bg))structOp(()=>{layers.splice(layers.indexOf(F),1);F.parent=Bg.parent;layers.splice(layers.indexOf(Bg),0,F);active=layers.indexOf(F);});
+     tutLayer('flat','bgline','below');tutPick(tR('flat'));setTool('fill');setHex('#f6b27a');}},
+  {t:'7. 노을빛 (합성 방식)',role:'glow',b:'밑색 위에 새 레이어(노을빛)를 만들고 합성을 "오버레이"로 바꿔요. 그라데이션 도구로 위에서 아래로 끌면 — 위는 주황, 아래는 보라 — 밑색 전체가 저녁 빛으로 물들어요. 너무 세면 불투명도를 낮춰요.',
+   tip:'"소프트 라이트"는 더 은은하고, "곱하기"는 어둡게 물들어요. 바꿔 가며 비교해 보세요.',cols:[['노을 (지금 색)','#ff9a3c'],['저녁 보라 (뒤 색)','#6b4fa0',1]],
+   tasks:[{l:'밑색 위에 새 레이어',ok:()=>!!tR('glow')&&tBelow(tR('flat'),tR('glow')),hl:'#lAdd'},{l:'합성: 오버레이(또는 소프트 라이트)',ok:()=>!!tR('glow')&&['overlay','soft-light'].includes(tR('glow').blend),hl:'#lBlend'},{l:'그라데이션 칠하기',ok:()=>tCnt('glow')>=1,hl:'[data-tool="grad"]'}],
+   auto(){const G=tR('glow');if(G)tutProps(G,{blend:'overlay'});else tutLayer('glow','flat','above',{blend:'overlay',opacity:.85});tutPick(tR('glow'));setTool('grad');ST.gradCol='back';ST.backCol='#6b4fa0';setHex('#ff9a3c');saveSettings();updBars();}},
+  {t:'8. 집중선',b:'만화 → 효과선 → "집중선". 캔버스를 눌러 선이 모이는 가운데를 아이 얼굴에 맞추고, "가운데 비움"을 넓혀 얼굴이 가려지지 않게 한 뒤 완료. 아이가 화면 밖으로 달려 나오는 속도감이 생겨요.',
+   tip:'선 색은 흰색이 노을 위에서 잘 보여요. 개수를 줄이면 더 시원해 보여요.',cols:[['흰색','#ffffff'],['먹색','#1c2029']],
+   enter(){if(SEL){SEL=null;updBars();dirty();}},
+   tasks:[{l:'집중선 넣고 완료',ok:()=>!!efxL()&&!tBusy('efx'),hl:()=>tBusy('efx')?'#efOk':'#bComic'}],
+   auto(){if(tBusy('efx'))return;SEL=null;updBars();const c=tMap(tutPanels()[0],540,960);tutPick(tR('char')||layers[active]);setHex('#ffffff');
+     ST.efx={type:'focus',n:110,lw:Math.max(2,Math.round(DOC.w/400)),len:52,jit:40};$('#cmEfx').onclick();genUpdate({cx:c.x,cy:c.y});syncEfx();toast('개수·가운데 비움을 맞추고 완료를 눌러요');}},
+  {t:'9. 외침 말풍선',b:'만화 → 말풍선을 고르고, 아래 막대에서 "외침"을 누른 뒤 점선 "말풍선 자리"에 끌어서 그려요. 꼬리는 아이 쪽으로. "글자 넣기"로 "늦었다~!!"를 써요.',
+   tip:'외침 풍선은 삐죽삐죽해서 큰 소리처럼 보여요. 글자를 굵게 하면 더 급해 보여요.',autoL:'대신 넣어 주기',
+   tasks:[{l:'외침 말풍선',ok:()=>!!balL()&&!tBusy('balloon'),hl:()=>tBusy('balloon')?'#balText':'#bComic'},{l:'대사 쓰기',ok:()=>!!lineTxt(),hl:()=>TXT?'#txOk':'[data-tool="text"]'}],
+   async auto(){const p=tutPanels()[0];tutPick(tTopL());
+     if(!balL()&&!tBusy('balloon')){const c=tMap(p,640,250),w=470*p.s,h=250*p.s,t=tMap(p,560,880);genStart('balloon',{type:'shout',x:c.x-w/2,y:c.y-h/2,w,h,tail:{x:t.x,y:t.y},lw:Math.max(2,Math.round(Math.min(DOC.w,DOC.h)/300)),seed:Math.floor(Math.random()*1e6)},'말풍선','balloon','새 말풍선 레이어');}
+     if(tBusy('balloon'))genFinish();
+     if(!lineTxt()){const m=balL().balloon,c={x:m.x+m.w/2,y:m.y+m.h/2};tutPick(balL());setHex('#1c2029');await tutText(c,'늦었다~!!',{size:Math.round(64*p.s),bold:true});}
+     setTool(lastBrush);}},
+  {t:'10. 효과음',b:'글자 도구로 점선 "효과음 자리"에 "타다닥"을 크고 굵게 써요. 그 글자 레이어를 고른 채 "테두리"를 켜면 흰 외곽선이 둘러져요.',
+   tip:'빨강이나 주황 효과음은 노을과 어울리면서도 눈에 잘 띄어요.',cols:[['빨강','#e2504a'],['먹색','#1c2029']],autoL:'대신 넣어 주기',
+   tasks:[{l:'"타다닥" 쓰기',ok:()=>!!sfxL(),hl:()=>TXT?'#txOk':'[data-tool="text"]'},{l:'테두리 켜기',ok:()=>!!(sfxL()&&sfxL().fx&&sfxL().fx.on),hl:()=>sfxL()&&layers[active]!==sfxL()?'#layerList':'#oFx'}],
+   async auto(){const p=tutPanels()[0];let L=sfxL();if(!L){tutPick(tTopL());setHex('#e2504a');L=await tutText(tMap(p,200,1520),'타다닥',{size:Math.round(110*p.s),bold:true});}
+     L=sfxL();if(L){tutPick(L);if(!(L.fx&&L.fx.on))fxEdit({on:true,size:Math.max(6,Math.round(DOC.w/160)),color:'#ffffff'});}setTool(lastBrush);}},
+  {t:'11. 마무리',b:'가이드를 숨기고(포즈 인형도 꺼져 있는지 확인), 전체를 한번 봐요. 마음에 들면 "내보내기"로 PNG를 저장하거나 공유해요.',
+   tip:'자는 다음 그림에서도 쓸 수 있게 설정에 남아 있어요. 필요 없으면 자 버튼에서 끄세요.',autoL:'숨겨 주기',
+   tasks:[{l:'가이드·포즈 인형 숨기기',ok:()=>[tR('guide'),tR('doll')].every(L=>!L||!L.visible),hl:'#layerList'},{l:'내보내기 열어 보기',ok:()=>!!(TUT&&TUT.c.exp),hl:'#bExport'}],
+   auto(){const a=[tR('guide'),tR('doll')].filter(L=>L&&L.visible);if(a.length)structOp(()=>a.forEach(L=>L.visible=false));}},
+  {t:'완성!',fin:true,b:'원근 자와 포즈 인형으로 깊이 있는 장면을 만들었어요. 배경은 자로, 인물은 인형으로 — 이 두 가지면 어떤 장면이든 형태가 무너지지 않아요.',
+   tip:'원근 자(소실점) → 배경 선 → 포즈 인형 + 변형 → 인물 선 → 참조 채우기 → 오버레이 빛 → 집중선 → 외침 말풍선·효과음',tasks:[]}];
+
+const LESSONS={
+  rain:{name:'비 오는 날',sub:'두 컷 · 밑그림 → 선화 → 밑색 → 그림자 → 하늘 → 빗줄기 → 말풍선',work:'따라 그리기 · 비 오는 날',w:1200,h:1800,preset:'2h',ds:[[1080,825],[1080,825]],TG,sfx:/쏴|솨|후두|주룩|투둑|촤/,steps:STEPS_RAIN},
+  alley:{name:'저녁 골목길을 달려라',sub:'한 컷 · 원근 자 → 배경 선 → 3D 포즈 인형 → 인물 → 노을빛(오버레이) → 집중선 → 외침 말풍선',work:'따라 그리기 · 골목길',w:1200,h:1800,preset:'1',ds:[[1080,1680]],TG:[alleyGuide()],sfx:/타다|다다|탁|후다|두두/,steps:STEPS_ALLEY}};
+const LES=()=>LESSONS[(TUT&&TUT.les)||'rain']||LESSONS.rain,TS=()=>LES().steps;
+const TDONE='bg-tut-done',tDone=()=>{try{return JSON.parse(localStorage.getItem(TDONE)||'{}')||{};}catch(e){return{};}};
+function tutPush(e){try{const s=TS()[TUT.step];
   // 이 단계에서 새로 만든 레이어를 단계의 역할로 정하고, 기본 이름이면 이름도 붙여 줌
   if(e.t==='st'&&s&&s.role&&!tR(s.role)&&e.after.list.length>e.before.list.length){const L=layers[active];
     if(L&&!isF(L)&&!L.frames&&!L.balloon&&!L.text&&!/^효과선/.test(L.name)&&L!==tR('guide')){TUT.ids[s.role]=L.id;
@@ -3106,13 +3215,13 @@ function tutTarget(sel){let el=typeof sel==='string'?document.querySelector(sel)
 let tutSig='';
 function tutRender(){const card=$('#tutCard'),pill=$('#tutPill');
   if(!TUT){card.hidden=true;pill.hidden=true;document.querySelectorAll('.tutGlow').forEach(x=>x.classList.remove('tutGlow'));tutSig='';return;}
-  const N=TSTEPS.length-1,s=TSTEPS[TUT.step]||TSTEPS[0];const ok=s.tasks.map(t=>{try{return!!t.ok();}catch(e){return false;}});
+  const N=TS().length-1,s=TS()[TUT.step]||TS()[0];const ok=s.tasks.map(t=>{try{return!!t.ok();}catch(e){return false;}});
   let glow=null;s.tasks.forEach((t,i)=>{if(!ok[i]&&!glow){try{glow=typeof t.hl==='function'?t.hl():t.hl;}catch(e){}}});
   const all=ok.every(Boolean),tg=!TUT.min&&glow?tutTarget(glow):null;
   document.querySelectorAll('.tutGlow').forEach(x=>{if(x!==tg)x.classList.remove('tutGlow');});if(tg)tg.classList.add('tutGlow');
   const sig=[TUT.step,TUT.min,ok.join()].join('|');if(sig===tutSig)return;tutSig=sig;
-  card.hidden=!!TUT.min;pill.hidden=!TUT.min;pill.textContent=`따라 그리기 ${Math.min(TUT.step,N)}/${N} · 펼치기`;
-  $('#tutN').textContent=s.fin?'완성':`${TUT.step}/${N}`;$('#tutProg').style.width=(TUT.step/N*100)+'%';
+  card.hidden=!!TUT.min;pill.hidden=!TUT.min;const nt=s.tasks.find((t,i)=>!ok[i]);pill.textContent=`${Math.min(TUT.step,N)}/${N} · `+(nt?nt.l:s.fin?'완성!':'다음 단계로')+' ▴';pill.title='따라 그리기 · 눌러서 펼쳐요';
+  $('#tutN').textContent=(s.fin?'완성':`${TUT.step}/${N}`)+' · '+LES().name;$('#tutProg').style.width=(TUT.step/N*100)+'%';
   $('#tutT').textContent=s.t;$('#tutB').textContent=s.b;$('#tutTip').textContent=s.tip||'';
   const ul=$('#tutTasks');ul.innerHTML='';s.tasks.forEach((t,i)=>{const li=document.createElement('li');li.className=ok[i]?'ok':'';li.innerHTML=`<i>${ok[i]?'✓':''}</i><span></span>`;li.querySelector('span').textContent=t.l;ul.appendChild(li);});
   const cw=$('#tutCols');cw.innerHTML='';(s.cols||[]).forEach(([n,hx,back])=>{const b=document.createElement('button');b.innerHTML=`<i style="background:${hx}"></i><span></span>`;b.querySelector('span').textContent=n;
@@ -3120,26 +3229,34 @@ function tutRender(){const card=$('#tutCard'),pill=$('#tutPill');
     b.onclick=()=>{if(back){ST.backCol=hx;saveSettings();updBars();toast('뒤 색으로 정했어요');}else{setHex(hx);pushRecent();}};cw.appendChild(b);});
   $('#tutPrev').hidden=TUT.step===0;const au=$('#tutAuto');au.hidden=!s.auto;au.textContent=s.autoL||'준비해 주기';
   const nx=$('#tutNext');nx.textContent=s.fin?'끝내기':TUT.step===0?'시작하기':'다음';nx.className='txtbtn '+(all||s.fin?'primary':'line');}
-function tutGo(n){if(!TUT)return;TUT.step=clamp(n,0,TSTEPS.length-1);const s=TSTEPS[TUT.step];
+function tutGo(n){if(!TUT)return;TUT.step=clamp(n,0,TS().length-1);const s=TS()[TUT.step];
+  if(s.fin){try{const d=tDone();d[TUT.les]=1;localStorage.setItem(TDONE,JSON.stringify(d));}catch(e){}}
   // 컷 자르기·말풍선·효과선 도구가 남아 있으면 다음 단계에서 그리려다 컷이 잘리니 브러시로 돌려 둠
   if(!GEN&&['frame','balloon','efx'].includes(tool))setTool(lastBrush);try{s.enter&&s.enter();}catch(e){}tutSave();tutSig='';tutRender();}
-function tutWork(){const a=tutAll()[curId];TUT=a?{work:curId,step:clamp(a.step|0,0,TSTEPS.length-1),c:a.c||{},ids:{},min:!!a.min}:null;tutSig='';tutRender();}
-async function tutStart(){
-  if(!await ask('따라 그리기','세로 웹툰 크기(1200×1800)의 새 작품을 만들고 단계별로 안내해요. 지금 그림은 보관함에 그대로 있어요.',{yes:'시작'}))return;
-  $('#galModal').hidden=true;comicPop.hidden=true;closePops();await newWork(1200,1800,'따라 그리기 · 비 오는 날');
+function tutWork(){const a=tutAll()[curId];const les=a&&LESSONS[a.les]?a.les:'rain';TUT=a?{work:curId,les,step:clamp(a.step|0,0,LESSONS[les].steps.length-1),c:a.c||{},ids:{},min:!!a.min}:null;tutSig='';tutRender();}
+function tutPreview(Ls,c){const d=DOC;DOC={w:Ls.w,h:Ls.h};let ps;try{ps=tPanelsFor(Ls,null);}finally{DOC=d;}
+  const k=c.width/Ls.w,x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.save();x.scale(k,k);
+  x.strokeStyle='#1c2029';x.lineWidth=12;ps.forEach(p=>x.strokeRect(p.x,p.y,p.w,p.h));guideDraw(x,Ls.TG,ps);x.restore();}
+function tutChoose(){$('#galModal').hidden=true;comicPop.hidden=true;closePops();const box=$('#tutList'),dn=tDone();box.innerHTML='';
+  Object.entries(LESSONS).forEach(([k,Ls])=>{const b=document.createElement('button');b.className='tles';b.innerHTML=`<canvas width="128" height="192"></canvas><div><b></b><span></span>${dn[k]?'<em>✓ 완성해 봤어요</em>':''}</div>`;
+    b.querySelector('b').textContent=Ls.name;b.querySelector('span').textContent=`${Ls.steps.length-2}단계 · ${Ls.sub}`;tutPreview(Ls,b.querySelector('canvas'));b.onclick=()=>tutStart(k);box.appendChild(b);});
+  $('#tutModal').hidden=false;}
+async function tutStart(les){const Ls=LESSONS[les]||LESSONS.rain;$('#tutModal').hidden=true;$('#galModal').hidden=true;comicPop.hidden=true;closePops();
+  await newWork(Ls.w,Ls.h,Ls.work);
   // 빈 '레이어 1' 은 치워서, 단계마다 새 레이어를 직접 만들어 보게
   const e1=layers.findIndex(l=>!isF(l)&&/^레이어 \d+$/.test(l.name));if(e1>0){layers.splice(e1,1);active=0;renderLayers();dirty();}
-  TUT={work:curId,step:0,c:{},ids:{},min:false};tutSave();tutSig='';tutRender();}
-async function tutEnd(){if(!TUT)return;const fin=TSTEPS[TUT.step].fin;if(!fin&&!await ask('따라 그리기 끝내기','안내 카드를 닫아요. 그림은 그대로 남아요.',{yes:'끝내기'}))return;
+  TUT={work:curId,les:LESSONS[les]?les:'rain',step:0,c:{},ids:{},min:false};tutSave();tutSig='';tutRender();}
+async function tutEnd(){if(!TUT)return;const fin=TS()[TUT.step].fin;if(!fin&&!await ask('따라 그리기 끝내기','안내 카드를 닫아요. 그림은 그대로 남아요.',{yes:'끝내기'}))return;
   tutForget(TUT.work);TUT=null;tutRender();if(fin)toast('수고했어요! 작품 보관함에 저장돼 있어요');}
 [$('#tutCard'),$('#tutPill')].forEach(el=>el.addEventListener('pointerdown',e=>e.stopPropagation()));
 $('#tutMin').onclick=()=>{TUT.min=true;tutSave();tutSig='';tutRender();};
 $('#tutPill').onclick=()=>{TUT.min=false;tutSave();tutSig='';tutRender();};
 $('#tutEnd').onclick=tutEnd;
 $('#tutPrev').onclick=()=>tutGo(TUT.step-1);
-$('#tutNext').onclick=()=>{if(TSTEPS[TUT.step].fin){tutEnd();return;}tutGo(TUT.step+1);};
-$('#tutAuto').onclick=async()=>{const s=TSTEPS[TUT.step];if(!s.auto)return;try{await s.auto();}catch(err){console.error(err);toast('준비하다 문제가 생겼어요 · 직접 해 주세요');}tutSig='';tutRender();};
-$('#cmTut').onclick=()=>{comicPop.hidden=true;if(TUT){TUT.min=false;tutSave();tutSig='';tutRender();return;}tutStart();};
+$('#tutNext').onclick=()=>{if(TS()[TUT.step].fin){tutEnd();return;}tutGo(TUT.step+1);};
+$('#tutAuto').onclick=async()=>{const s=TS()[TUT.step];if(!s.auto)return;try{await s.auto();}catch(err){console.error(err);toast('준비하다 문제가 생겼어요 · 직접 해 주세요');}tutSig='';tutRender();};
+$('#cmTut').onclick=()=>{comicPop.hidden=true;if(TUT){TUT.min=false;tutSave();tutSig='';tutRender();return;}tutChoose();};
+$('#tutCancel').onclick=()=>{$('#tutModal').hidden=true;};
 $('#bExport').addEventListener('click',()=>{if(TUT){TUT.c.exp=1;tutSave();tutSoon();}});
 // 팝업이 열리고 닫히거나 도구가 바뀌면 반짝이는 곳이 달라지니 가끔 다시 살핌 (바뀐 게 없으면 카드는 그대로)
 setInterval(()=>{if(TUT)tutRender();},700);
