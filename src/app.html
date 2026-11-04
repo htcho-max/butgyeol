@@ -629,7 +629,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
     <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start">
       <canvas id="poseC" style="flex:1 1 420px;min-width:280px;aspect-ratio:4/3;max-height:62vh;background:var(--panel);border:1px solid var(--line);border-radius:10px;touch-action:none;cursor:grab"></canvas>
       <div style="flex:0 1 230px;display:flex;flex-direction:column;gap:10px">
-        <div class="field"><label>자세</label><div class="chips" id="poPre"><button data-p="stand">서기</button><button data-p="walk">걷기</button><button data-p="run">달리기</button><button data-p="sit">앉기</button><button data-p="wave">손 흔들기</button><button data-p="jump">점프</button></div></div>
+        <div class="field"><label>자세</label><div class="chips" id="poPre"><button data-p="stand">서기</button><button data-p="walk">걷기</button><button data-p="run">달리기</button><button data-p="sit">의자에 앉기</button><button data-p="wave">손 흔들기</button><button data-p="jump">점프</button><button data-p="cheer">만세</button><button data-p="point">가리키기</button><button data-p="think">생각하기</button><button data-p="kneel">한쪽 무릎</button><button data-p="crouch">쪼그려 앉기</button><button data-p="hug">무릎 안고 앉기</button><button data-p="kick">발차기</button><button data-p="guard">파이팅</button></div></div>
         <div class="field"><label>끌 때</label><div class="chips" id="poMode"><button data-m="roll">화면 안에서 돌리기</button><button data-m="bend">앞뒤로 굽히기</button></div></div>
         <div class="field"><label for="poHead">머리 크기 <b id="poHeadV"></b></label><input type="range" id="poHead" min="35" max="80"></div>
         <div class="field"><label for="poFov">원근감 <b id="poFovV"></b></label><input type="range" id="poFov" min="0" max="100"></div>
@@ -722,7 +722,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 <script>
 (()=>{
 "use strict";
-const VERSION='v2.8';
+const VERSION='v2.8.1';
 const $=s=>document.querySelector(s);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const IN_ARTIFACT=!!window.claude;
@@ -1691,12 +1691,26 @@ const mT=a=>[a[0],a[3],a[6],a[1],a[4],a[7],a[2],a[5],a[8]];
 const mV=(m,v)=>[m[0]*v[0]+m[1]*v[1]+m[2]*v[2],m[3]*v[0]+m[4]*v[1]+m[5]*v[2],m[6]*v[0]+m[7]*v[1]+m[8]*v[2]];
 function mAx(ax,t){const[x,y,z]=ax,c=Math.cos(t),s2=Math.sin(t),C=1-c;return[c+x*x*C,x*y*C-z*s2,x*z*C+y*s2,y*x*C+z*s2,c+y*y*C,y*z*C-x*s2,z*x*C-y*s2,z*y*C+x*s2,c+z*z*C];}
 const mE=(x,y,z)=>mMul(mAx([0,1,0],y*Math.PI/180),mMul(mAx([1,0,0],x*Math.PI/180),mAx([0,0,1],z*Math.PI/180)));
-const POSES={stand:{lSh:[0,0,8],rSh:[0,0,-8],lEl:[-8,0,0],rEl:[-8,0,0]},
-  walk:{pelvis:[0,8,0],lSh:[-25,0,6],rSh:[25,0,-6],lEl:[-20,0,0],rEl:[-30,0,0],lHip:[22,0,0],lKn:[-10,0,0],rHip:[-20,0,0],rKn:[-25,0,0],chest:[0,-12,0]},
-  run:{pelvis:[12,10,0],chest:[8,-14,0],neck:[-12,0,0],lSh:[55,0,10],lEl:[-95,0,0],rSh:[-45,0,-10],rEl:[-90,0,0],lHip:[-35,0,0],lKn:[-30,0,0],rHip:[55,0,0],rKn:[-110,0,0],rAn:[20,0,0]},
-  sit:{lHip:[90,0,4],rHip:[90,0,-4],lKn:[-90,0,0],rKn:[-90,0,0],lSh:[25,0,8],rSh:[25,0,-8],lEl:[-50,0,0],rEl:[-50,0,0],chest:[5,0,0]},
-  wave:{lSh:[0,0,150],lEl:[0,0,40],rSh:[0,0,-10],rEl:[-10,0,0],chest:[0,0,-4],neck:[0,0,6]},
-  jump:{lSh:[0,0,140],rSh:[0,0,-140],lEl:[0,0,15],rEl:[0,0,-15],lHip:[50,0,10],lKn:[-95,0,0],rHip:[20,0,-10],rKn:[-50,0,0],chest:[-8,0,0]}};
+// 자세: [x,y,z] 도(°). 인형은 +z 쪽(코)을 봐요. x 회전 부호 — 엉덩이·어깨: 음수 = 앞으로 듦, 양수 = 뒤로 / 무릎: 양수 = 굽힘(정강이가 뒤로) / 팔꿈치: 음수 = 굽힘(아래팔이 앞으로)
+// z 회전: 왼팔(lSh) 양수·오른팔(rSh) 음수 = 옆으로 들기. 골반 x 양수 = 몸을 앞으로 숙임. (v2.8 까지는 무릎·엉덩이 부호가 반대라 달리기·앉기가 뒤로 꺾여 보였음)
+const POSES={
+  stand:{lSh:[0,0,8],rSh:[0,0,-8],lEl:[-10,0,0],rEl:[-10,0,0],lKn:[3,0,0],rKn:[3,0,0]},
+  walk:{pelvis:[0,8,0],chest:[0,-12,0],lHip:[20,0,0],lKn:[18,0,0],lAn:[-5,0,0],rHip:[-22,0,0],rKn:[8,0,0],lSh:[-22,0,6],lEl:[-25,0,0],rSh:[22,0,-6],rEl:[-12,0,0]},
+  run:{pelvis:[15,10,0],chest:[8,-14,0],neck:[-14,0,0],lHip:[-60,0,0],lKn:[85,0,0],lAn:[-10,0,0],rHip:[25,0,0],rKn:[95,0,0],rAn:[30,0,0],lSh:[40,0,8],lEl:[-90,0,0],rSh:[-50,0,-8],rEl:[-90,0,0]},
+  sit:{lHip:[-90,0,4],rHip:[-90,0,-4],lKn:[90,0,0],rKn:[90,0,0],lSh:[-20,0,6],rSh:[-20,0,-6],lEl:[-55,0,0],rEl:[-55,0,0],chest:[-3,0,0]},
+  wave:{lSh:[0,0,95],lEl:[0,0,75],rSh:[0,0,-8],rEl:[-10,0,0],chest:[0,0,-4],neck:[0,0,6],lKn:[3,0,0],rKn:[3,0,0]},
+  jump:{lSh:[0,0,150],rSh:[0,0,-150],lEl:[0,0,15],rEl:[0,0,-15],lHip:[-55,0,8],lKn:[100,0,0],lAn:[25,0,0],rHip:[-20,0,-8],rKn:[60,0,0],rAn:[25,0,0],chest:[-8,0,0]},
+  cheer:{lSh:[0,0,165],rSh:[0,0,-165],lEl:[0,0,10],rEl:[0,0,-10],chest:[-6,0,0],neck:[-12,0,0],lKn:[5,0,0],rKn:[5,0,0]},
+  point:{chest:[0,14,0],neck:[0,10,0],rSh:[-85,12,-4],rEl:[-5,0,0],lSh:[0,0,10],lEl:[-20,0,0],lHip:[0,0,4],rHip:[-10,0,0],rKn:[12,0,0]},
+  think:{rSh:[-55,45,10],rEl:[-140,0,0],lSh:[-30,-40,-8],lEl:[-95,0,0],chest:[4,0,0],neck:[12,0,-8],lHip:[0,0,4],rHip:[0,0,-2],rKn:[8,0,0]},
+  kneel:{lHip:[-90,0,4],lKn:[90,0,0],rHip:[12,0,-4],rKn:[95,0,0],rAn:[40,0,0],lSh:[-30,0,6],lEl:[-55,0,0],rSh:[0,0,-10],rEl:[-15,0,0],chest:[8,0,0]},
+  crouch:{lHip:[-120,0,15],rHip:[-120,0,-15],lKn:[140,0,0],rKn:[140,0,0],lAn:[-25,0,0],rAn:[-25,0,0],chest:[30,0,0],neck:[-25,0,0],lSh:[-60,0,10],rSh:[-60,0,-10],lEl:[-60,0,0],rEl:[-60,0,0]},
+  hug:{lHip:[-125,0,10],rHip:[-125,0,-10],lKn:[140,0,0],rKn:[140,0,0],chest:[12,0,0],neck:[-8,0,0],lSh:[-70,0,-6],rSh:[-70,0,6],lEl:[-35,0,0],rEl:[-35,0,0]},
+  kick:{rHip:[-90,0,-5],rKn:[8,0,0],rAn:[-20,0,0],lHip:[5,0,0],lKn:[10,0,0],chest:[-12,0,0],lSh:[0,0,60],lEl:[-30,0,0],rSh:[25,0,-50],rEl:[-30,0,0]},
+  guard:{pelvis:[0,-20,0],chest:[5,12,0],lHip:[-15,0,6],rHip:[15,0,-6],lKn:[22,0,0],rKn:[22,0,0],lSh:[-40,0,20],lEl:[-130,0,0],rSh:[-20,0,-25],rEl:[-140,0,0]}};
+// 무릎은 앞뒤로만 굽는 경첩: 비틀림을 없애고 0~150° 로 (거꾸로 꺾이지 않게)
+const HINGE={lKn:1,rKn:1};
+function poseHinge(i){const n=PB[i][0];if(!HINGE[n])return;const d=mV(PO.R[i],[0,-1,0]);const a=clamp(Math.atan2(-d[2],-d[1]),0,150*Math.PI/180);PO.R[i]=mAx([1,0,0],a);}
 const PO={R:PB.map(()=>mI()),yaw:-.5,pitch:.15,head:.55,fov:.35,mode:'roll',sel:-1,drag:null};
 function poseSet(name){PO.R=PB.map(b=>{const e=(POSES[name]||{})[b[0]];return e?mE(...e):mI();});poseDraw();}
 function poseWorld(){const W=[],P=[];PB.forEach((b,i)=>{const pi=b[1]==null?-1:PI_[b[1]],pr=pi<0?mI():W[pi],pp=pi<0?[0,0,0]:P[pi],o=mV(pr,b[2]);P[i]=[pp[0]+o[0],pp[1]+o[1],pp[2]+o[2]];W[i]=mMul(pr,PO.R[i]);});return{W,P};}
@@ -1732,10 +1746,10 @@ poseC.addEventListener('pointermove',e=>{const g=PO.drag;if(!g)return;const r=po
   const{W}=poseWorld(),j=g.j,pi=PB[j][1]==null?-1:PI_[PB[j][1]],Pw=pi<0?mI():W[pi],C=camM(),view=mV(mT(C),[0,0,1]),q=poseLast.Q[j];let Rw;
   if(PO.mode==='roll'){const a0=Math.atan2(g.py-q[1],g.px-q[0]),a1=Math.atan2(py-q[1],px-q[0]);Rw=mAx(view,-(a1-a0));}
   else{const ch=PB.findIndex(b=>b[1]===PB[j][0]);const bone=ch>=0?mV(W[j],PB[ch][2]):[0,-1,0],bl=Math.hypot(...bone)||1,bd=bone.map(v=>v/bl);let ax=[view[1]*bd[2]-view[2]*bd[1],view[2]*bd[0]-view[0]*bd[2],view[0]*bd[1]-view[1]*bd[0]];const al=Math.hypot(...ax)||1;ax=ax.map(v=>v/al);Rw=mAx(ax,(py-g.py)/(90*d));}
-  PO.R[j]=mMul(mT(Pw),mMul(Rw,mMul(Pw,PO.R[j])));g.px=px;g.py=py;poseDraw();});
+  PO.R[j]=mMul(mT(Pw),mMul(Rw,mMul(Pw,PO.R[j])));poseHinge(j);g.px=px;g.py=py;poseDraw();});
 const poseUp=()=>{PO.drag=null;};poseC.addEventListener('pointerup',poseUp);poseC.addEventListener('pointercancel',poseUp);
 function syncPose(){$('#poMode').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.m===PO.mode));$('#poHead').value=Math.round(PO.head*100);$('#poHeadV').textContent=Math.round(PO.head*100);$('#poFov').value=Math.round(PO.fov*100);$('#poFovV').textContent=Math.round(PO.fov*100);}
-$('#cmPose').onclick=()=>{comicPop.hidden=true;if(ST.pose&&ST.pose.R&&ST.pose.R.length===PB.length)Object.assign(PO,ST.pose);$('#poseModal').hidden=false;syncPose();requestAnimationFrame(poseDraw);};
+$('#cmPose').onclick=()=>{comicPop.hidden=true;if(ST.pose&&ST.pose.R&&ST.pose.R.length===PB.length){Object.assign(PO,ST.pose);PB.forEach((b,i)=>poseHinge(i));}$('#poseModal').hidden=false;syncPose();requestAnimationFrame(poseDraw);};
 $('#poPre').querySelectorAll('button').forEach(b=>b.onclick=()=>poseSet(b.dataset.p));
 $('#poMode').querySelectorAll('button').forEach(b=>b.onclick=()=>{PO.mode=b.dataset.m;syncPose();});
 $('#poHead').oninput=e=>{PO.head=+e.target.value/100;syncPose();poseDraw();};$('#poFov').oninput=e=>{PO.fov=+e.target.value/100;syncPose();poseDraw();};
