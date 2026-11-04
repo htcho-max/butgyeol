@@ -90,7 +90,7 @@ body.animOn #nav{bottom:66px}
 #view{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
 #badge{position:absolute;left:50%;top:62px;transform:translateX(-50%);background:var(--raised);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:12px;font-variant-numeric:tabular-nums;opacity:0;transition:opacity .25s;pointer-events:none}
 #badge.show{opacity:1}
-#toast{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:var(--fg);color:var(--panel);border-radius:10px;padding:10px 14px;font-size:13px;max-width:min(90%,420px);text-align:center;opacity:0;transition:opacity .25s;pointer-events:none;z-index:6}
+#toast{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:var(--fg);color:var(--panel);border-radius:10px;padding:10px 14px;font-size:13px;max-width:min(90%,420px);text-align:center;opacity:0;transition:opacity .25s;pointer-events:none;z-index:12}
 #toast.show{opacity:1}
 .fbar{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:2px;padding:4px;background:var(--raised);border:1px solid var(--line);border-radius:12px;box-shadow:0 6px 18px rgba(0,0,0,.14);max-width:calc(100% - 16px);overflow-x:auto;scrollbar-width:none}
 .fbar::-webkit-scrollbar{display:none}
@@ -289,6 +289,24 @@ input[type=range]{accent-color:var(--accent);width:100%}
   #sideBtns{display:flex}
 }
 @media (max-width:560px){ #saveState,#workName{display:none} .txtbtn .tl{display:none} }
+#tutCard{position:absolute;right:10px;bottom:10px;z-index:9;width:min(350px,calc(100% - 20px));max-height:calc(100% - 20px);overflow:auto;background:var(--raised);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.2);padding:12px 14px;display:flex;flex-direction:column;gap:9px;font-size:14px;color:var(--fg)}
+#tutCard[hidden],#tutPill[hidden]{display:none}
+#tutCard .th{display:flex;align-items:center;gap:6px}#tutCard .th b{font-size:13px;color:var(--accent)}#tutN{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}#tutCard .sp{flex:1}
+#tutCard .th button{width:30px;height:30px;border:0;border-radius:8px;background:transparent;cursor:pointer;font-size:18px;line-height:1;color:var(--muted)}#tutCard .th button:hover{background:var(--accent-soft)}
+#tutCard .tbar{height:4px;border-radius:2px;background:var(--line);flex:none}#tutCard .tbar i{display:block;height:100%;border-radius:2px;background:var(--accent);transition:width .3s}
+#tutT{margin:0;font-size:16px}#tutB{margin:0;line-height:1.55}
+#tutTasks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}#tutTasks:empty{display:none}
+#tutTasks li{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.45}
+#tutTasks li i{flex:none;width:18px;height:18px;border-radius:50%;border:2px solid var(--line);box-sizing:border-box;margin-top:1px;display:grid;place-items:center;font-style:normal;font-size:11px;font-weight:700;color:#fff}
+#tutTasks li.ok i{background:#2e9e5b;border-color:#2e9e5b}#tutTasks li.ok span{color:var(--muted)}
+#tutCols{display:flex;flex-wrap:wrap;gap:6px}#tutCols:empty{display:none}
+#tutCols button{display:flex;align-items:center;gap:6px;height:30px;padding:0 10px 0 4px;border:1px solid var(--line);border-radius:15px;background:var(--panel);cursor:pointer;font-size:12px;color:var(--fg)}
+#tutCols button i{width:22px;height:22px;border-radius:50%;border:1px solid rgba(0,0,0,.18);box-sizing:border-box}
+#tutTip{margin:0;font-size:12px;color:var(--muted);line-height:1.5}#tutTip:empty{display:none}
+#tutCard .tbtns{display:flex;gap:6px;align-items:center}
+#tutPill{position:absolute;right:10px;bottom:10px;z-index:9;height:38px;padding:0 14px;border-radius:19px;border:1px solid var(--line);background:var(--raised);box-shadow:0 6px 18px rgba(0,0,0,.16);font-size:13px;cursor:pointer;color:var(--fg);font-weight:600}
+.tutGlow{animation:tutG 1.3s ease-in-out infinite!important}
+@keyframes tutG{0%,100%{box-shadow:0 0 0 0 rgba(255,138,0,0)}50%{box-shadow:0 0 0 4px rgba(255,138,0,.9)}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -348,6 +366,13 @@ input[type=range]{accent-color:var(--accent);width:100%}
 
     <div id="stage">
       <canvas id="view"></canvas>
+      <div id="tutCard" hidden>
+        <div class="th"><b>따라 그리기</b><span id="tutN"></span><span class="sp"></span><button id="tutMin" title="접기 · 오른쪽 아래 작은 단추로 다시 펼쳐요">–</button><button id="tutEnd" title="따라 그리기 끝내기 · 그림은 그대로 남아요">×</button></div>
+        <div class="tbar"><i id="tutProg"></i></div>
+        <h4 id="tutT"></h4><p id="tutB"></p><ul id="tutTasks"></ul><div id="tutCols"></div><p id="tutTip"></p>
+        <div class="tbtns"><button class="txtbtn" id="tutPrev">이전</button><span class="sp"></span><button class="txtbtn line" id="tutAuto" title="이 단계에 맞게 레이어·도구·색을 맞춰 줘요 · 그리는 건 직접 해요">준비해 주기</button><button class="txtbtn primary" id="tutNext">다음</button></div>
+      </div>
+      <button id="tutPill" hidden></button>
       <div class="fbar" id="selBar" hidden>
         <span id="selModeWrap" style="display:flex;gap:2px"><button class="fb" data-m="rect">사각형</button><button class="fb" data-m="lasso">올가미</button><button class="fb" data-m="wand" title="자동 선택 · 누른 곳과 비슷한 색 영역을 골라요">자동 선택</button><span class="vsep"></span>
           <button class="fb" data-op="new" title="새로 선택">새로</button><button class="fb" data-op="add" title="지금 선택에 더하기">더하기</button><button class="fb" data-op="sub" title="지금 선택에서 빼기">빼기</button><span class="vsep"></span></span>
@@ -392,6 +417,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
         <button class="mitem" id="cmBal"><b>말풍선</b><span>끌어서 그리고, 밖을 눌러 꼬리를 달아요</span></button>
         <button class="mitem" id="cmPose"><b>3D 포즈 인형</b><span>사람 자세를 잡아 밑그림으로 넣어요</span></button>
         <button class="mitem" id="cmEfx"><b>효과선</b><span>집중선·속도선을 한 번에</span></button>
+        <button class="mitem" id="cmTut"><b>따라 그리기</b><span>안내를 따라 세로 웹툰 한 장면을 완성해요</span></button>
       </div>
       <div class="pop" id="framePop" hidden style="top:12px;right:12px;width:min(340px,calc(100% - 24px))">
         <h3>컷 나누기</h3>
@@ -565,6 +591,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
       <label class="chk"><input type="checkbox" id="finger"> 손가락으로도 그리기</label>
       <label class="chk"><input type="checkbox" id="fillAll" checked> 채우기: 모든 레이어의 선 기준</label>
       <div class="field"><label for="tol">채우기 허용 범위 <b id="tolV"></b></label><input type="range" id="tol" min="0" max="120" value="40"></div>
+      <div class="field"><label for="gap" title="틈 닫기 · 선 사이 작은 틈을 막힌 것으로 보고 채워요. 0이면 끔">채우기 틈 닫기 <b id="gapV"></b></label><input type="range" id="gap" min="0" max="12"></div>
       <div class="gest">
         <b>두 손가락</b> 끌기·벌리기·돌리기로 이동·확대·회전<br>
         <b>두 손가락 탭</b> 실행 취소 · <b>세 손가락 탭</b> 다시 실행<br>
@@ -683,7 +710,7 @@ input[type=range]{accent-color:var(--accent);width:100%}
 <script>
 (()=>{
 "use strict";
-const VERSION='v2.6.1';
+const VERSION='v2.7';
 const $=s=>document.querySelector(s);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const IN_ARTIFACT=!!window.claude;
@@ -1068,7 +1095,7 @@ function getStamp(name){
 }
 
 /* ---------- 획 ---------- */
-let S=null;
+let S=null;let TUT=null;
 let TXT=null,txtDrag=null,VE=null,VECOP=null,GEN=null,GENOP=null,FRS=null,ANIM=null;const TL={id:null,n:0,iv:1500,t:null,busy:false};
 const radius=(b,p)=>Math.max(.35,b.size/2*(b.sizeP?(b.minSize+(1-b.minSize)*p):1));
 function taperF(b,dist){if(!b.taper)return 1;const L=b.taper*b.size*5+4;return clamp(dist/L,.08,1);}
@@ -1288,7 +1315,7 @@ function push(e){
     else if(e.L.frames||e.L.balloon){e.mk=e.L.frames?'frames':'balloon';e.m0=e.L[e.mk];e.m1=null;e.L[e.mk]=null;toast((e.mk==='frames'?'컷':'말풍선')+' 레이어에 그려서 일반 레이어가 됐어요 · 되돌리려면 실행 취소');}}
   // 글자 레이어에 그리면 일반 레이어가 됨
   if(e.t==='px'&&e.L&&e.L.text&&!/^글자/.test(e.label)){e.tm0=e.L.text;e.tm1=null;e.L.text=null;toast('글자 레이어에 그려서 일반 레이어가 됐어요 · 다시 고치려면 실행 취소');}
-  hist.push(e);let tot=hist.reduce((a,x)=>a+entryBytes(x),0);while(hist.length>1&&(hist.length>HMAX||tot>HBYTES))tot-=entryBytes(hist.shift());redoS=[];updHist();}
+  hist.push(e);let tot=hist.reduce((a,x)=>a+entryBytes(x),0);while(hist.length>1&&(hist.length>HMAX||tot>HBYTES))tot-=entryBytes(hist.shift());redoS=[];updHist();if(TUT)tutPush(e);}
 const LPROPS=['opacity','blend','visible','name','lockAlpha','parent','clip','ref','locked','open','mask','maskOn','editMask','fx','text','vec','anim','frames','balloon'];
 const snap=()=>({list:layers.map(l=>{const o={l};LPROPS.forEach(k=>o[k]=l[k]);return o;}),active});
 function restore(s){layers=s.list.map(o=>{LPROPS.forEach(k=>o.l[k]=o[k]);return o.l;});active=clamp(s.active,0,layers.length-1);}
@@ -2113,15 +2140,21 @@ $('#bMix').onclick=e=>{e.stopPropagation();if(!mixPop.hidden){mixPop.hidden=true
 function merged(only){const c=mk(DOC.w,DOC.h),x=c.getContext('2d',{willReadFrequently:true});drawList(x,kids(null),0,only);return c;}
 let editVer=0,mCache=null,mCacheVer=-1;
 function mergedCached(){if(!mCache||mCacheVer!==editVer||mCache.width!==DOC.w||mCache.height!==DOC.h){mCache=merged();mCacheVer=editVer;}return mCache;}
+function gapSrc(src,r){const W=DOC.w,H=DOC.h,a=mk(W,H),ax=a.getContext('2d'),b=mk(W,H),bx=b.getContext('2d',{willReadFrequently:true});
+  for(let d=-r;d<=r;d++)ax.drawImage(src,d,0);for(let d=-r;d<=r;d++)bx.drawImage(a,0,d);return b;}
 function floodFill(px,py){
   const L=editTarget();if(!L)return;if(L.vec){toast('벡터 레이어에는 채우기를 쓸 수 없어요 · 아래에 일반 레이어를 만들어 칠하세요');return;}
   const W=DOC.w,H=DOC.h;const x0=Math.floor(px),y0=Math.floor(py);if(x0<0||y0<0||x0>=W||y0>=H)return;
   // 참조 레이어가 있으면 그 레이어들의 선만 기준으로, 없으면 설정대로(모든 레이어 / 지금 레이어)
   const hasRef=layers.some(l=>l.ref&&!isF(l)&&effVis(l));
   const src=hasRef?merged(l=>!!l.ref):ST.fillAll?merged():L.canvas;
-  const Rg=colorRegion(src,x0,y0,ST.tol,true);if(!Rg)return;
+  // 틈 닫기: 선을 r 만큼 두껍게 본 그림에서 칸을 찾고, 찾은 칸을 다시 r 만큼 넓혀 선 밑까지 채움. 누른 곳이 두꺼워진 선 위거나(좁은 칸) 칸이 없으면 원래대로
+  const r=Math.round(ST.fillGap??3);let Rg=null,gr=0;
+  if(r>0){const gs=gapSrc(src,r),a=gs.getContext('2d',{willReadFrequently:true}).getImageData(x0,y0,1,1).data[3],a0=src.getContext('2d',{willReadFrequently:true}).getImageData(x0,y0,1,1).data[3];
+    if(Math.abs(a-a0)<=ST.tol){Rg=colorRegion(gs,x0,y0,ST.tol,true);gr=r;}}
+  if(!Rg)Rg=colorRegion(src,x0,y0,ST.tol,true);if(!Rg)return;
   // 선 아래 틈이 생기지 않도록 2px 넓히기
-  growMask(Rg,2);const[minX,minY,maxX,maxY]=Rg.bb,bw=maxX-minX+1,bh=maxY-minY+1;const fillC=regionCanvas(Rg,hsv2rgb(color.h,color.s,color.v));
+  growMask(Rg,2+gr);const[minX,minY,maxX,maxY]=Rg.bb,bw=maxX-minX+1,bh=maxY-minY+1;const fillC=regionCanvas(Rg,hsv2rgb(color.h,color.s,color.v));
   copyInto(beforeC,L.canvas);ACT='채우기';
   const tmp=fillC;if(SEL)selMaskOn(tmp.getContext('2d'),minX,minY,bw,bh);
   L.ctx.save();L.ctx.globalCompositeOperation=L.lockAlpha?'source-atop':'source-over';L.ctx.drawImage(tmp,minX,minY);L.ctx.restore();
@@ -2600,7 +2633,7 @@ $('#bExport').onclick=e=>{e.stopPropagation();if(!expPop.hidden){expPop.hidden=t
 [setPop,expPop,brushPop].forEach(p=>p.addEventListener('pointerdown',e=>e.stopPropagation()));
 function closePops(){setPop.hidden=true;expPop.hidden=true;brushPop.hidden=true;if(!wide.matches)side.classList.remove('open');}
 document.addEventListener('pointerdown',e=>{if(!e.target.closest('.pop,#bSet,#bExport,#tBrush,[data-tool],.scrim,#sOpt,#bRuler,#bMix,#colorCard,#bHist,#bComic'))[setPop,expPop,brushPop,selPop,rulPop,mixPop,histPop,comicPop].forEach(p=>p.hidden=true);if(!e.target.closest('#fxPop,#oFx,#layersCard'))fxPop.hidden=true;});
-function syncSettings(){$('#perfOn').checked=!!ST.perf;$('#rcOn').checked=ST.rcache!==false;$('#tlOn').checked=ST.tl!==false;tlCnt();$('#navMode').value=ST.nav||'auto';$('#predict').checked=ST.predict;$('#qshape').checked=ST.qshape;$('#stab').value=ST.stab;$('#stabV').textContent=ST.stab;$('#stabMode').value=ST.stabMode;$('#penBtn').value=ST.penBtn;$('#qmenuOn').checked=ST.qmenu;$('#finger').checked=ST.finger;$('#fillAll').checked=ST.fillAll;$('#tol').value=ST.tol;$('#tolV').textContent=ST.tol;}
+function syncSettings(){$('#perfOn').checked=!!ST.perf;$('#rcOn').checked=ST.rcache!==false;$('#tlOn').checked=ST.tl!==false;tlCnt();$('#navMode').value=ST.nav||'auto';$('#predict').checked=ST.predict;$('#qshape').checked=ST.qshape;$('#stab').value=ST.stab;$('#stabV').textContent=ST.stab;$('#stabMode').value=ST.stabMode;$('#penBtn').value=ST.penBtn;$('#qmenuOn').checked=ST.qmenu;$('#finger').checked=ST.finger;$('#fillAll').checked=ST.fillAll;$('#tol').value=ST.tol;$('#tolV').textContent=ST.tol;$('#gap').value=ST.fillGap??3;$('#gapV').textContent=(ST.fillGap??3)?(ST.fillGap??3)+'px':'끔';}
 $('#stab').oninput=e=>{ST.stab=+e.target.value;syncSettings();saveSettings();};
 $('#stabMode').onchange=e=>{ST.stabMode=e.target.value;saveSettings();};
 $('#penBtn').onchange=e=>{ST.penBtn=e.target.value;saveSettings();};
@@ -2610,7 +2643,7 @@ $('#predict').onchange=e=>{ST.predict=e.target.checked;saveSettings();};
 $('#qshape').onchange=e=>{ST.qshape=e.target.checked;saveSettings();};
 $('#finger').onchange=e=>{ST.finger=e.target.checked;ST.fingerSet=true;saveSettings();};
 $('#fillAll').onchange=e=>{ST.fillAll=e.target.checked;saveSettings();};
-$('#tol').oninput=e=>{ST.tol=+e.target.value;syncSettings();saveSettings();};
+$('#tol').oninput=e=>{ST.tol=+e.target.value;syncSettings();saveSettings();};$('#gap').oninput=e=>{ST.fillGap=+e.target.value;syncSettings();saveSettings();};
 
 /* 확인 창 */
 function ask(title,text,{yes='확인',danger=false,input=null}={}){
@@ -2717,7 +2750,7 @@ async function idbGet(k){const db=await getDb();return new Promise((res,rej)=>{c
 async function idbDel(k){const db=await getDb();return new Promise((res,rej)=>{const tx=db.transaction('kv','readwrite');tx.objectStore('kv').delete(k);tx.oncomplete=res;tx.onerror=()=>rej(tx.error);});}
 let curId=null,curName='그림',works=[],unsaved=false,saveT=null,saving=null;const ss=$('#saveState');
 const newId=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
-function updTitle(){$('#workName').textContent=curName;document.title=curName+' · 붓결 드로잉';}
+function updTitle(){$('#workName').textContent=curName;document.title=curName+' · 붓결 드로잉';try{fitTop();}catch(e){}}
 function changed(){editVer++;tlKick();if(ANIM)animThumbSoon();unsaved=true;ss.textContent='저장 대기 중';clearTimeout(saveT);saveT=setTimeout(saveNow,1800);}
 function memRecord(){return{w:DOC.w,h:DOC.h,active,nameSeq,v:2,layers:layers.map(L=>({type:L.type||'layer',name:L.name,opacity:L.opacity,blend:L.blend,visible:L.visible,lockAlpha:!!L.lockAlpha,
   pi:L.parent!=null?layers.indexOf(byId(L.parent)):-1,clip:!!L.clip,ref:!!L.ref,locked:!!L.locked,open:L.open!==false,maskOn:L.maskOn!==false,fx:L.fx||null,text:L.text||null,vec:vecPlain(L.vec),anim:!!L.anim,frames:L.frames||null,balloon:L.balloon||null,canvas:L.canvas||null,mcanvas:L.mask?L.mask.canvas:null}))};}
@@ -2754,10 +2787,10 @@ async function loadWork(id){
   try{const rec=await idbGet('work:'+id);if(!rec||!rec.layers)return false;await buildFromRecord(rec);
     curId=id;tlLoad(id);const e=works.find(w=>w.id===id);curName=e?e.name:'그림';unsaved=false;ss.textContent='자동 저장됨';
     try{await idbSet('current',id);}catch(_){}
-    renderLayers();fitView();updTitle();if(e&&!e.thumb)changed();return true;}catch(err){return false;}
+    renderLayers();fitView();updTitle();if(e&&!e.thumb)changed();tutWork();return true;}catch(err){return false;}
 }
 function nextName(){const used=new Set(works.map(w=>w.name));let n=works.length+1;while(used.has('그림 '+n))n++;return'그림 '+n;}
-async function newWork(w,h,name){await flushSave();initDoc(w,h);curId=newId();tlLoad(curId);curName=name||nextName();renderLayers();fitView();updTitle();unsaved=true;await saveNow();}
+async function newWork(w,h,name){await flushSave();initDoc(w,h);curId=newId();tlLoad(curId);curName=name||nextName();renderLayers();fitView();updTitle();tutWork();unsaved=true;await saveNow();}
 
 const fmtDate=t=>{if(!t)return'';const d=new Date(t);const p=n=>String(n).padStart(2,'0');return`${d.getMonth()+1}월 ${d.getDate()}일 ${p(d.getHours())}:${p(d.getMinutes())}`;};
 let galUrls=[];
@@ -2767,6 +2800,8 @@ function renderGallery(){
   const g=$('#galGrid');g.innerHTML='';
   const nc=document.createElement('div');nc.className='wcard';nc.innerHTML=`<button class="wthumb wnew"><span class="in">${svg('plus')}새 작품</span></button><div class="winfo"><div><b>&nbsp;</b><span>캔버스 크기 고르기</span></div></div>`;
   nc.querySelector('button').onclick=openNew;g.appendChild(nc);
+  const tc=document.createElement('div');tc.className='wcard';tc.innerHTML=`<button class="wthumb wnew"><span class="in">${svg('comic')}따라 그리기</span></button><div class="winfo"><div><b>웹툰 한 장면</b><span>단계별로 따라 그려요</span></div></div>`;
+  tc.querySelector('button').onclick=tutStart;g.appendChild(tc);
   [...works].sort((a,b)=>(b.updated||0)-(a.updated||0)).forEach(w=>{
     const c=document.createElement('div');c.className='wcard'+(w.id===curId?' cur':'');
     let im='';if(w.thumb){const u=URL.createObjectURL(w.thumb);galUrls.push(u);im=`<img alt="" src="${u}">`;}
@@ -2932,6 +2967,180 @@ document.addEventListener('pointerout',e=>{if(!e.relatedTarget)hideTip();});
 addEventListener('blur',hideTip);addEventListener('scroll',hideTip,true);
 document.addEventListener('focusin',e=>{const t=tipTarget(e.target);if(t&&e.target.matches(':focus-visible'))showTip(t);});
 document.addEventListener('focusout',hideTip);
+
+/* ---------- 따라 그리기 (튜토리얼) ---------- */
+// 단계 카드가 할 일을 알려 주고, 해낸 일은 레이어 상태·작업 기록으로 확인해 체크해요. '준비해 주기'는 레이어·도구·색만 맞춰 줘요(그리기는 직접)
+const TUT_KEY='bg-tut',TGN='가이드 (따라 그리기)';
+const TROLE={guide:TGN,sketch:'밑그림',line:'선화',flat:'밑색',shade:'그림자',sky:'배경색'};
+const tutAll=()=>{try{return JSON.parse(localStorage.getItem(TUT_KEY)||'{}')||{};}catch(e){return{};}};
+function tutSave(){try{const a=tutAll();if(TUT)a[TUT.work]={step:TUT.step,c:TUT.c,min:TUT.min};localStorage.setItem(TUT_KEY,JSON.stringify(a));}catch(e){}}
+function tutForget(id){try{const a=tutAll();delete a[id];localStorage.setItem(TUT_KEY,JSON.stringify(a));}catch(e){}}
+// 역할 → 레이어 (이번 세션에서 만든 id 우선, 없으면 이름으로)
+function tR(r){if(!TUT)return null;const id=TUT.ids[r];return layers.find(l=>l.id===id&&!isF(l))||layers.find(l=>!isF(l)&&l.name===TROLE[r])||null;}
+const tCnt=r=>(TUT&&TUT.c[r])||0;
+const frL=()=>layers.find(l=>l.frames&&l.frames.polys);
+const efxL=()=>layers.find(l=>/^효과선/.test(l.name)&&!l.text);
+const balL=()=>layers.find(l=>l.balloon);
+const txtLs=()=>layers.filter(l=>l.text&&(l.text.str||'').trim());
+const sfxL=()=>txtLs().find(l=>/쏴|솨|후두|주룩|투둑|촤/.test(l.text.str))||null;
+const lineTxt=()=>txtLs().find(l=>l!==sfxL())||null;
+const tBusy=k=>GEN&&GEN.key===k;
+// 위·아래 두 칸 (컷 레이어가 있으면 그 칸, 없으면 기본 '위아래 2')
+function tutPanels(){const F=frL();let ps=null;
+  if(F&&F.frames.polys.length>=2)ps=F.frames.polys.map(P=>{const xs=P.map(q=>q[0]),ys=P.map(q=>q[1]),x=Math.min(...xs),y=Math.min(...ys);return{x,y,w:Math.max(...xs)-x,h:Math.max(...ys)-y,P};}).sort((a,b)=>b.w*b.h-a.w*a.h).slice(0,2).sort((a,b)=>a.y-b.y);
+  if(!ps){const m=Math.round(Math.min(DOC.w,DOC.h)*.05),g=Math.round(Math.min(DOC.w,DOC.h)*.025);ps=frameLayout({preset:'2h',margin:m,gx:g,gy:g}).map(P=>({x:P[0][0],y:P[0][1],w:P[1][0]-P[0][0],h:P[2][1]-P[0][1],P}));}
+  return ps.map(p=>{const s=Math.min(p.w/1080,p.h/825);return{...p,s,ox:p.x+(p.w-1080*s)/2,oy:p.y+(p.h-825*s)/2};});}
+const tMap=(p,x,y)=>({x:p.ox+x*p.s,y:p.oy+y*p.s});
+// 가이드 그림 (칸 하나를 1080×825 로 보고 그린 선)
+const tDrop=(x,y)=>`M${x} ${y-20}C${x+11} ${y-3} ${x+11} ${y+12} ${x} ${y+12}C${x-11} ${y+12} ${x-11} ${y-3} ${x} ${y-20}Z`;
+const tEll=(x,y,a,b)=>`M${x-a} ${y}A${a} ${b} 0 1 0 ${x+a} ${y}A${a} ${b} 0 1 0 ${x-a} ${y}Z`;
+const TG=[
+  {line:['M312 400C306 520 372 612 440 640C508 612 574 520 568 400',
+    'M300 590C245 440 265 235 440 225C615 235 635 440 580 590C566 600 550 597 540 586C560 520 568 450 568 400L540 330L505 385L470 322L432 382L392 326L352 386L318 346L312 400C312 452 320 520 340 586C330 598 312 598 300 590Z',
+    'M352 425Q380 410 408 420M472 420Q500 410 528 425',
+    'M350 462Q385 436 422 456M360 502Q387 512 414 500',tEll(388,480,22,28),tEll(390,470,10,10),
+    'M530 462Q495 436 458 456M520 502Q493 512 466 500',tEll(492,480,22,28),tEll(490,470,10,10),
+    'M446 530L440 546L451 547',tEll(442,588,12,15),
+    'M368 548L360 560M382 548L374 560M396 548L388 560M486 548L478 560M500 548L492 560M514 548L506 560',
+    'M410 628L406 692M470 628L474 692',
+    'M406 692C330 702 225 735 175 820L705 820C655 735 550 702 474 692','M406 692L382 748L440 722L498 748L474 692M440 722L440 820',
+    'M640 300L662 268M668 322L702 306M612 268L618 234',
+    tDrop(720,420),tDrop(930,380),tDrop(130,180),tDrop(170,430),tDrop(990,560),tDrop(80,650)],
+   dash:[tEll(820,200,190,110)],label:[['말풍선 자리',820,200]]},
+  {line:['M330 360C350 230 440 175 540 172C640 175 730 230 750 360Q697 330 645 362Q592 332 540 364Q488 332 435 362Q383 330 330 360Z',
+    'M540 172Q470 240 435 362M540 172L540 364M540 172Q610 240 645 362','M540 172L540 148','M540 364L540 402',
+    'M480 470C478 420 505 400 540 400C575 400 602 420 600 470C602 505 590 530 575 536L505 536C490 530 478 505 480 470Z',
+    'M575 536C606 542 626 562 632 600L670 700C600 716 480 716 410 700L448 600C454 562 474 542 505 536','M488 562Q540 606 592 562',
+    'M488 708L484 760M514 711L512 760M566 711L570 758M592 708L598 758',
+    'M476 758L476 790L530 790C532 774 528 762 520 758ZM562 756C556 762 556 774 558 790L612 790L612 756Z',
+    'M0 790L1080 790',tEll(800,808,110,12),tEll(240,806,70,9)],
+   dash:['M60 60L400 60L400 230L60 230Z'],label:[['효과음 자리',230,145]]}];
+function drawGuide(L){const x=L.ctx,ps=tutPanels();x.save();x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,DOC.w,DOC.h);
+  TG.forEach((G,i)=>{const p=ps[i];if(!p)return;x.save();x.setTransform(p.s,0,0,p.s,p.ox,p.oy);x.lineCap='round';x.lineJoin='round';x.strokeStyle='#2f86ff';x.lineWidth=4;
+    G.line.forEach(d=>x.stroke(new Path2D(d)));x.setLineDash([14,12]);x.lineWidth=3;G.dash.forEach(d=>x.stroke(new Path2D(d)));x.setLineDash([]);
+    x.fillStyle='#2f86ff';x.font='600 30px sans-serif';x.textAlign='center';x.textBaseline='middle';G.label.forEach(([t,a,b])=>x.fillText(t,a,b));x.restore();});
+  x.restore();thumb(L);}
+function tutEnsureGuide(){let G=tR('guide');if(G)return G;ACT='따라 그리기 가이드';
+  structOp(()=>{G=newLayer(TGN);G.locked=true;G.opacity=.55;const bi=layers.findIndex(l=>l.parent==null&&!isF(l));layers.splice(bi>=0?bi+1:0,0,G);active=layers.indexOf(G);TUT.ids.guide=G.id;drawGuide(G);});
+  return G;}
+// 역할 레이어 만들기 (있으면 그대로)
+function tutLayer(role,rel,where,o){let L=tR(role);if(L)return L;const R0=rel?tR(rel):null;ACT='새 레이어 · '+TROLE[role];
+  structOp(()=>{L=newLayer(TROLE[role]);if(o)Object.assign(L,o);
+    if(R0){L.parent=R0.parent;const i=layers.indexOf(R0);layers.splice(where==='below'?i:i+1,0,L);}else addNode(L);active=layers.indexOf(L);TUT.ids[role]=L.id;});
+  return L;}
+function tutProps(L,o){if(!L)return;const need=Object.keys(o).some(k=>L[k]!==o[k]);if(need)structOp(()=>Object.assign(L,o));}
+function tutPick(L){if(L&&layers.includes(L)){active=layers.indexOf(L);renderLayers();}}
+const tBelow=(a,b)=>a&&b&&layers.indexOf(a)<layers.indexOf(b);
+async function tutText(c,str,o){setTool('text');ST.txt.align='center';newText(c);TXT.cen=c;await txSet({str,...o});const L=TXT&&TXT.L;finishText();return L;}
+
+const TSTEPS=[
+  {t:'비 오는 날, 웹툰 한 장면',b:'위아래 두 컷짜리 세로 웹툰을 따라 그려요. 위 컷은 비를 보고 놀란 아이, 아래 컷은 우산을 쓰고 걸어가는 뒷모습이에요. 단계마다 할 일이 체크되고, 주황색으로 반짝이는 버튼이 다음에 누를 곳이에요.',
+   tip:'"준비해 주기"를 누르면 레이어·도구·색을 대신 맞춰 줘요. 그리는 건 직접 해요. 카드는 – 로 접어 둘 수 있어요.',tasks:[]},
+  {t:'1. 컷 나누기',b:'만화 버튼 → 컷 나누기 → "위아래 2"를 고르고 완료를 눌러요. 컷 테두리는 따로 맨 위 레이어에 생겨서, 칸 밖으로 삐져나온 그림은 흰 여백이 가려 줘요.',autoL:'대신 나눠 주기',
+   tasks:[{l:'컷 테두리 레이어 만들기',ok:()=>!!frL()&&!tBusy('frames'),hl:()=>tBusy('frames')?'#frOk':'#bComic'},{l:'위아래 두 칸',ok:()=>!!frL()&&frL().frames.polys.length>=2&&!tBusy('frames'),hl:'#frPre [data-fp="2h"]'}],
+   auto(){const F=frL();if(!F)openFrames();else if(!GEN)genEdit(F,'frames','frame');if(!GEN)return;const f={...GEN.L.frames,preset:'2h'};f.polys=frameLayout(f);genUpdate(f);genFinish();setTool(lastBrush);updBars();}},
+  {t:'2. 밑그림',role:'sketch',b:'파란 선이 따라 그릴 가이드예요. 잠겨 있어서 그 위엔 그려지지 않아요. 새 레이어를 만들고(이름은 "밑그림"으로 붙여 줘요) 연필로 가이드를 보며 형태를 대충 잡아요. 머리는 동그라미, 몸은 선 몇 개면 충분해요.',
+   tip:'잘 안 그려지면 두 손가락 탭으로 실행 취소. 손가락 두 개로 확대해서 그려도 좋아요.',cols:[['연한 회색','#8d96aa'],['연한 빨강','#e08a7e']],
+   enter(){tutEnsureGuide();},
+   tasks:[{l:'새 레이어 만들기',ok:()=>!!tR('sketch'),hl:'#lAdd'},{l:'연필로 형태 잡기 (5획 이상)',ok:()=>tCnt('sketch')>=5,hl:'#tBrush'}],
+   auto(){tutEnsureGuide();tutLayer('sketch','guide','above');setTool('pencil');setHex('#8d96aa');}},
+  {t:'3. 선화 (벡터 레이어)',role:'line',b:'밑그림 레이어의 불투명도를 30% 정도로 낮추고, 레이어 창의 펜촉 버튼으로 벡터 레이어를 만들어요. G펜으로 또렷하게 따라 그려요. 얼굴·머리카락·우비·우산 칸이 각각 선으로 꼭 닫혀야 다음 단계에서 채우기가 새지 않아요.',
+   tip:'벡터 레이어라서 삐져나온 선은 지우개로 교차점까지 한 번에 지워져요. 선을 이어 그릴 땐 조금 겹치게 그려요.',cols:[['먹색','#1c2029'],['진갈색','#3b2a26']],
+   tasks:[{l:'밑그림 흐리게 (불투명도 50% 이하)',ok:()=>{const S0=tR('sketch');return !S0||S0.opacity<=.5;},hl:'#lOp'},{l:'벡터 레이어 만들기 (선화)',ok:()=>!!tR('line'),hl:'#lVec'},{l:'G펜으로 선 따기 (20획 이상)',ok:()=>tCnt('line')>=20,hl:'#tBrush'}],
+   auto(){tutProps(tR('sketch'),{opacity:.3});tutLayer('line',tR('sketch')?'sketch':'guide','above',{vec:{strokes:[]}});setTool('gpen');setHex('#1c2029');}},
+  {t:'4. 밑색',role:'flat',b:'선화 레이어를 고르고 "참조"를 켜요. 채우기가 선화의 선만 보고 칸을 찾게 돼요. 그다음 새 레이어를 선화 아래에 두고, 채우기 도구로 칸마다 눌러 칠해요.',
+   tip:'색이 밖으로 새면 실행 취소하고 선화의 틈을 이어 주세요. 좁은 틈은 브러시로 직접 칠해도 돼요.',
+   cols:[['피부','#f8dcc8'],['머리카락','#5b4636'],['눈','#4f7cc4'],['우비','#f6c445'],['우산','#e2504a'],['장화','#3d6f9e'],['입·볼','#e88a86']],
+   tasks:[{l:'선화를 참조 레이어로',ok:()=>!!(tR('line')&&tR('line').ref),hl:()=>layers[active]===tR('line')?'#oRef':'#layerList'},
+     {l:'새 레이어를 선화 아래에',ok:()=>tBelow(tR('flat'),tR('line')),hl:()=>tR('flat')?'#lDown':'#lAdd'},{l:'채우기로 칠하기 (4곳 이상)',ok:()=>tCnt('flat')>=4,hl:'[data-tool="fill"]'}],
+   auto(){tutProps(tR('line'),{ref:true});const F=tR('flat');if(F&&!tBelow(F,tR('line'))){const Ln=tR('line');structOp(()=>{layers.splice(layers.indexOf(F),1);F.parent=Ln.parent;layers.splice(layers.indexOf(Ln),0,F);active=layers.indexOf(F);});}
+     tutLayer('flat','line','below');tutPick(tR('flat'));setTool('fill');setHex('#f8dcc8');}},
+  {t:'5. 그림자',role:'shade',b:'밑색 바로 위에 새 레이어를 만들고 "아래에 클리핑"을 켠 뒤 합성을 "곱하기"로 바꿔요. 그러면 밑색 안쪽에만, 아래 색과 어울리게 칠해져요. 빛이 위에서 온다고 보고 앞머리 아래 이마, 목, 우산 안쪽, 우비 아래쪽을 칠해요.',
+   tip:'마커나 펜으로 경계가 또렷하게 칠하면 웹툰 느낌이 나요. 삐져나가도 클리핑 덕분에 밑색 밖엔 안 보여요.',cols:[['연보라','#c3b1e6'],['연파랑','#b4c4e6']],
+   tasks:[{l:'밑색 위에 새 레이어',ok:()=>!!tR('shade')&&tBelow(tR('flat'),tR('shade')),hl:'#lAdd'},{l:'아래에 클리핑',ok:()=>!!(tR('shade')&&tR('shade').clip),hl:'#oClip'},
+     {l:'합성: 곱하기',ok:()=>!!(tR('shade')&&tR('shade').blend==='multiply'),hl:'#lBlend'},{l:'그림자 칠하기 (3획 이상)',ok:()=>tCnt('shade')>=3,hl:'#tBrush'}],
+   auto(){const Sd=tR('shade');if(Sd)tutProps(Sd,{clip:true,blend:'multiply'});else tutLayer('shade','flat','above',{clip:true,blend:'multiply'});tutPick(tR('shade'));setTool('marker');setHex('#c3b1e6');}},
+  {t:'6. 하늘',role:'sky',b:'밑색 아래에 새 레이어(배경색)를 만들고 그라데이션 도구로 캔버스 위에서 아래로 끌어요. 위쪽 막대에서 "지금 색 → 뒤 색"을 고르면 두 색으로 칠해져요. 흐린 비 오는 하늘이니 회색빛 파랑이 어울려요.',
+   tip:'밑그림과 가이드는 하늘 아래로 가려져요. 다 쓴 거라 괜찮아요.',cols:[['하늘 위 (지금 색)','#6f88ad'],['하늘 아래 (뒤 색)','#c9d4e3',1]],
+   tasks:[{l:'밑색 아래에 새 레이어',ok:()=>tBelow(tR('sky'),tR('flat')),hl:()=>tR('sky')?'#lDown':'#lAdd'},{l:'그라데이션으로 하늘 칠하기',ok:()=>tCnt('sky')>=1,hl:'[data-tool="grad"]'}],
+   auto(){tutLayer('sky','flat','below');tutPick(tR('sky'));setTool('grad');ST.gradCol='back';ST.backCol='#c9d4e3';setHex('#6f88ad');saveSettings();updBars();}},
+  {t:'7. 빗줄기 (효과선)',b:'선택 도구 → 사각형으로 아래 컷을 감싸 선택해요. 그다음 만화 → 효과선 → "속도선"을 고르고, 캔버스를 위에서 아래로 살짝 비스듬히 끌어요. 선택 안에만 빗줄기가 생겨요. 개수·굵기를 맞추고 완료.',
+   tip:'흰색 비가 흐린 하늘과 잘 어울려요. 다시 뿌리기를 누르면 줄 배치가 바뀌어요.',cols:[['흰 비','#ffffff'],['진한 비','#4d6386']],autoL:'준비해 주기',
+   tasks:[{l:'아래 컷 선택하기',ok:()=>!!SEL||!!efxL(),hl:'[data-tool="select"]'},{l:'속도선으로 빗줄기 넣고 완료',ok:()=>!!efxL()&&!tBusy('efx'),hl:()=>tBusy('efx')?'#efOk':'#bComic'}],
+   auto(){if(tBusy('efx'))return;const p=tutPanels()[1],pts=p.P.map(q=>({x:q[0],y:q[1]}));setSel(pathMask(pts),pts,'new');tutPick(tR('sky')||layers[active]);setHex('#ffffff');
+     ST.efx={type:'speed',n:170,lw:Math.max(2,Math.round(DOC.w/500)),len:24,jit:45};$('#cmEfx').onclick();genUpdate({ang:Math.PI*.56});syncEfx();toast('개수·굵기를 맞추고 완료를 눌러요');}},
+  {t:'8. 말풍선과 대사',b:'만화 → 말풍선을 고르고 위 컷 오른쪽 위(가이드의 점선 자리)에 끌어서 그려요. 풍선 밖을 누르면 꼬리가 생기니 아이 쪽을 눌러요. 아래 막대의 "글자 넣기"로 "어? 비 온다…"를 써요.',
+   tip:'풍선 안쪽을 끌면 옮겨지고, 글자 상자도 끌어서 옮길 수 있어요. 줄을 바꾸면 풍선 안에 잘 들어가요.',autoL:'대신 넣어 주기',
+   enter(){if(SEL&&efxL()){SEL=null;updBars();dirty();}},
+   tasks:[{l:'말풍선 그리기',ok:()=>!!balL()&&!tBusy('balloon'),hl:()=>tBusy('balloon')?'#balText':'#bComic'},{l:'대사 쓰기',ok:()=>!!lineTxt(),hl:()=>TXT?'#txOk':'[data-tool="text"]'}],
+   async auto(){const p=tutPanels()[0];if(SEL){SEL=null;updBars();}tutPick(tR('line')||layers[active]);
+     if(!balL()&&!tBusy('balloon')){const c=tMap(p,820,200),w=390*p.s,h=230*p.s,t=tMap(p,650,318);genStart('balloon',{type:'round',x:c.x-w/2,y:c.y-h/2,w,h,tail:{x:t.x,y:t.y},lw:Math.max(2,Math.round(Math.min(DOC.w,DOC.h)/300)),seed:Math.floor(Math.random()*1e6)},'말풍선','balloon','새 말풍선 레이어');}
+     if(tBusy('balloon'))genFinish();
+     if(!lineTxt()){const m=balL().balloon,c={x:m.x+m.w/2,y:m.y+m.h/2};tutPick(balL());setHex('#1c2029');await tutText(c,'어?\n비 온다…',{size:Math.round(54*p.s),bold:false});}
+     setTool(lastBrush);}},
+  {t:'9. 효과음',b:'글자 도구로 아래 컷 왼쪽 위(점선 자리)에 "쏴아아"를 크고 굵게 써요. 그 글자 레이어를 고른 채 레이어 창의 "테두리"를 켜면 흰 외곽선이 둘러져서 그림 위에서도 잘 읽혀요.',
+   tip:'글자 창에서 크기를 130~160 정도로 키워 보세요.',cols:[['진파랑','#2a4f9e'],['먹색','#1c2029']],autoL:'대신 넣어 주기',
+   tasks:[{l:'"쏴아아" 쓰기',ok:()=>!!sfxL(),hl:()=>TXT?'#txOk':'[data-tool="text"]'},{l:'테두리 켜기',ok:()=>!!(sfxL()&&sfxL().fx&&sfxL().fx.on),hl:()=>sfxL()&&layers[active]!==sfxL()?'#layerList':'#oFx'}],
+   async auto(){const p=tutPanels()[1];let L=sfxL();if(!L){tutPick(tR('line')||layers[active]);setHex('#2a4f9e');L=await tutText(tMap(p,230,145),'쏴아아',{size:Math.round(130*p.s),bold:true});}
+     L=sfxL();if(L){tutPick(L);if(!(L.fx&&L.fx.on))fxEdit({on:true,size:Math.max(6,Math.round(DOC.w/160)),color:'#ffffff'});}setTool(lastBrush);}},
+  {t:'10. 마무리',b:'레이어 창에서 가이드와 밑그림의 눈을 꺼서 숨겨요. 전체를 한번 보고, 마음에 들면 오른쪽 위 "내보내기"로 PNG를 저장하거나 공유해요.',
+   tip:'그림은 작품 보관함에 자동 저장돼 있어요. 나중에 레이어를 고쳐도 돼요.',autoL:'숨겨 주기',
+   tasks:[{l:'가이드·밑그림 숨기기',ok:()=>[tR('guide'),tR('sketch')].every(L=>!L||!L.visible),hl:'#layerList'},{l:'내보내기 열어 보기',ok:()=>!!(TUT&&TUT.c.exp),hl:'#bExport'}],
+   auto(){const a=[tR('guide'),tR('sketch')].filter(L=>L&&L.visible);if(a.length)structOp(()=>a.forEach(L=>L.visible=false));}},
+  {t:'완성!',fin:true,b:'첫 웹툰 장면을 완성했어요. 다음엔 가이드 없이 같은 순서로 나만의 장면을 그려 보세요.',
+   tip:'컷 → 밑그림 → 선화(벡터) → 밑색(참조 + 채우기) → 그림자(클리핑 + 곱하기) → 하늘 → 효과선 → 말풍선·글자',tasks:[]}];
+
+function tutPush(e){try{const s=TSTEPS[TUT.step];
+  // 이 단계에서 새로 만든 레이어를 단계의 역할로 정하고, 기본 이름이면 이름도 붙여 줌
+  if(e.t==='st'&&s&&s.role&&!tR(s.role)&&e.after.list.length>e.before.list.length){const L=layers[active];
+    if(L&&!isF(L)&&!L.frames&&!L.balloon&&!L.text&&!/^효과선/.test(L.name)&&L!==tR('guide')){TUT.ids[s.role]=L.id;
+      if(/^(레이어|벡터) \d+$/.test(L.name)){L.name=TROLE[s.role];const o=e.after.list.find(q=>q.l===L);if(o)o.name=L.name;renderLayers();toast(`새 레이어 이름을 '${L.name}'(으)로 붙였어요`);}}}
+  if(e.t==='px'&&e.L)for(const k in TROLE)if(tR(k)===e.L)TUT.c[k]=(TUT.c[k]||0)+1;
+  tutSave();tutSoon();}catch(err){}}
+let tutT=null;function tutSoon(){clearTimeout(tutT);tutT=setTimeout(tutRender,120);}
+function tutTarget(sel){let el=typeof sel==='string'?document.querySelector(sel):sel;if(!el)return null;
+  if(el.closest('#moreList')&&morePop.hidden)return $('#bMore');
+  if(el.closest('#comicPop')&&comicPop.hidden)return tutTarget('#bComic');
+  if(el.closest('#side')&&!el.offsetParent)return $(el.closest('#colorCard')?'#bColor':'#bLayers');
+  return el.offsetParent?el:null;}
+let tutSig='';
+function tutRender(){const card=$('#tutCard'),pill=$('#tutPill');
+  if(!TUT){card.hidden=true;pill.hidden=true;document.querySelectorAll('.tutGlow').forEach(x=>x.classList.remove('tutGlow'));tutSig='';return;}
+  const N=TSTEPS.length-1,s=TSTEPS[TUT.step]||TSTEPS[0];const ok=s.tasks.map(t=>{try{return!!t.ok();}catch(e){return false;}});
+  let glow=null;s.tasks.forEach((t,i)=>{if(!ok[i]&&!glow){try{glow=typeof t.hl==='function'?t.hl():t.hl;}catch(e){}}});
+  const all=ok.every(Boolean),tg=!TUT.min&&glow?tutTarget(glow):null;
+  document.querySelectorAll('.tutGlow').forEach(x=>{if(x!==tg)x.classList.remove('tutGlow');});if(tg)tg.classList.add('tutGlow');
+  const sig=[TUT.step,TUT.min,ok.join()].join('|');if(sig===tutSig)return;tutSig=sig;
+  card.hidden=!!TUT.min;pill.hidden=!TUT.min;pill.textContent=`따라 그리기 ${Math.min(TUT.step,N)}/${N} · 펼치기`;
+  $('#tutN').textContent=s.fin?'완성':`${TUT.step}/${N}`;$('#tutProg').style.width=(TUT.step/N*100)+'%';
+  $('#tutT').textContent=s.t;$('#tutB').textContent=s.b;$('#tutTip').textContent=s.tip||'';
+  const ul=$('#tutTasks');ul.innerHTML='';s.tasks.forEach((t,i)=>{const li=document.createElement('li');li.className=ok[i]?'ok':'';li.innerHTML=`<i>${ok[i]?'✓':''}</i><span></span>`;li.querySelector('span').textContent=t.l;ul.appendChild(li);});
+  const cw=$('#tutCols');cw.innerHTML='';(s.cols||[]).forEach(([n,hx,back])=>{const b=document.createElement('button');b.innerHTML=`<i style="background:${hx}"></i><span></span>`;b.querySelector('span').textContent=n;
+    b.title=back?'뒤 색으로 정하기 · 그라데이션 "지금 색 → 뒤 색"에 쓰여요':'이 색으로 칠하기';
+    b.onclick=()=>{if(back){ST.backCol=hx;saveSettings();updBars();toast('뒤 색으로 정했어요');}else{setHex(hx);pushRecent();}};cw.appendChild(b);});
+  $('#tutPrev').hidden=TUT.step===0;const au=$('#tutAuto');au.hidden=!s.auto;au.textContent=s.autoL||'준비해 주기';
+  const nx=$('#tutNext');nx.textContent=s.fin?'끝내기':TUT.step===0?'시작하기':'다음';nx.className='txtbtn '+(all||s.fin?'primary':'line');}
+function tutGo(n){if(!TUT)return;TUT.step=clamp(n,0,TSTEPS.length-1);const s=TSTEPS[TUT.step];try{s.enter&&s.enter();}catch(e){}tutSave();tutSig='';tutRender();}
+function tutWork(){const a=tutAll()[curId];TUT=a?{work:curId,step:clamp(a.step|0,0,TSTEPS.length-1),c:a.c||{},ids:{},min:!!a.min}:null;tutSig='';tutRender();}
+async function tutStart(){
+  if(!await ask('따라 그리기','세로 웹툰 크기(1200×1800)의 새 작품을 만들고 단계별로 안내해요. 지금 그림은 보관함에 그대로 있어요.',{yes:'시작'}))return;
+  $('#galModal').hidden=true;comicPop.hidden=true;closePops();await newWork(1200,1800,'따라 그리기 · 비 오는 날');
+  // 빈 '레이어 1' 은 치워서, 단계마다 새 레이어를 직접 만들어 보게
+  const e1=layers.findIndex(l=>!isF(l)&&/^레이어 \d+$/.test(l.name));if(e1>0){layers.splice(e1,1);active=0;renderLayers();dirty();}
+  TUT={work:curId,step:0,c:{},ids:{},min:false};tutSave();tutSig='';tutRender();}
+async function tutEnd(){if(!TUT)return;const fin=TSTEPS[TUT.step].fin;if(!fin&&!await ask('따라 그리기 끝내기','안내 카드를 닫아요. 그림은 그대로 남아요.',{yes:'끝내기'}))return;
+  tutForget(TUT.work);TUT=null;tutRender();if(fin)toast('수고했어요! 작품 보관함에 저장돼 있어요');}
+[$('#tutCard'),$('#tutPill')].forEach(el=>el.addEventListener('pointerdown',e=>e.stopPropagation()));
+$('#tutMin').onclick=()=>{TUT.min=true;tutSave();tutSig='';tutRender();};
+$('#tutPill').onclick=()=>{TUT.min=false;tutSave();tutSig='';tutRender();};
+$('#tutEnd').onclick=tutEnd;
+$('#tutPrev').onclick=()=>tutGo(TUT.step-1);
+$('#tutNext').onclick=()=>{if(TSTEPS[TUT.step].fin){tutEnd();return;}tutGo(TUT.step+1);};
+$('#tutAuto').onclick=async()=>{const s=TSTEPS[TUT.step];if(!s.auto)return;try{await s.auto();}catch(err){console.error(err);toast('준비하다 문제가 생겼어요 · 직접 해 주세요');}tutSig='';tutRender();};
+$('#cmTut').onclick=()=>{comicPop.hidden=true;if(TUT){TUT.min=false;tutSave();tutSig='';tutRender();return;}tutStart();};
+$('#bExport').addEventListener('click',()=>{if(TUT){TUT.c.exp=1;tutSave();tutSoon();}});
+// 팝업이 열리고 닫히거나 도구가 바뀌면 반짝이는 곳이 달라지니 가끔 다시 살핌 (바뀐 게 없으면 카드는 그대로)
+setInterval(()=>{if(TUT)tutRender();},700);
 
 /* ---------- 시작 ---------- */
 drawHue();colorChanged();drawRecent();syncSettings();setTool(tool);
